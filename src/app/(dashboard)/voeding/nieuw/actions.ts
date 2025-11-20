@@ -50,3 +50,19 @@ export async function createNutritionPlan(formData: {
   }
 }
 
+export async function deleteNutritionPlan(planId: string) {
+  try {
+    await prisma.nutritionPlan.delete({
+      where: { id: planId },
+    });
+
+    revalidatePath("/voeding");
+    revalidatePath("/clients");
+    
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error deleting nutrition plan:", error);
+    return { success: false, error: "Er is een fout opgetreden bij het verwijderen van het voedingsplan" };
+  }
+}
+

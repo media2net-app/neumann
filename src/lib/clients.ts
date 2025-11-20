@@ -57,6 +57,16 @@ const clientDefinitions: ClientDefinition[] = [
         href: "/voeding",
         description: "Voedingsadvisering & schema's",
       },
+      {
+        label: "Ingrediënten",
+        href: "/ingredienten",
+        description: "Ingrediënten database",
+      },
+      {
+        label: "Recepten",
+        href: "/recepten",
+        description: "Recepten database",
+      },
     ],
   },
 ];

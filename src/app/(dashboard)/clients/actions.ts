@@ -53,3 +53,19 @@ export async function createClient(formData: {
   }
 }
 
+export async function deleteClient(clientId: string) {
+  try {
+    // Delete client (cascade will delete related sessions, nutrition plans, and reviews)
+    await prisma.client.delete({
+      where: { id: clientId },
+    });
+
+    revalidatePath("/clients");
+    
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error deleting client:", error);
+    return { success: false, error: "Er is een fout opgetreden bij het verwijderen van de klant" };
+  }
+}
+

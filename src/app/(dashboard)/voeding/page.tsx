@@ -1,154 +1,55 @@
 import { getNeumannClient } from "@/lib/clients";
 import { UtensilsCrossed, FileText, Plus } from "lucide-react";
 import Link from "next/link";
+import { prisma } from "@/lib/prisma";
+import DeleteButton from "@/components/DeleteButton";
+import { deleteNutritionPlan } from "./nieuw/actions";
 
 export default async function VoedingPage() {
   const client = getNeumannClient();
 
-  // Klanten met hun voedingsplannen
-  const klantenMetPlannen = [
-    {
-      klantId: "1",
-      klantNaam: "Marijn Besseler",
-      email: "marijn@example.nl",
-      voedingsplan: {
-        id: "1",
-        naam: "Revalidatie Schema - Zachte Start",
-        type: "Revalidatie",
-        kcal: 2000,
-        status: "Actief",
-        aangemaakt: "2024-11-10",
-        laatsteUpdate: "2024-12-10",
+  // Fetch all nutrition plans with their clients
+  const nutritionPlans = await prisma.nutritionPlan.findMany({
+    include: {
+      client: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
       },
     },
-    {
-      klantId: "2",
-      klantNaam: "Kristel Kwant",
-      email: "kristel@example.nl",
-      voedingsplan: {
-        id: "2",
-        naam: "Revalidatie Schema - Zachte Start",
-        type: "Revalidatie",
-        kcal: 1800,
-        status: "Actief",
-        aangemaakt: "2024-10-15",
-        laatsteUpdate: "2024-12-05",
-      },
+    orderBy: {
+      laatsteUpdate: "desc",
     },
-    {
-      klantId: "3",
-      klantNaam: "Heather Court",
-      email: "heather@example.nl",
-      voedingsplan: {
-        id: "3",
-        naam: "Afval Schema - 1500 kcal",
-        type: "Gewichtsverlies",
-        kcal: 1500,
-        status: "Voltooid",
-        aangemaakt: "2024-06-01",
-        laatsteUpdate: "2024-11-15",
-      },
-    },
-    {
-      klantId: "4",
-      klantNaam: "Fadil Deniz",
-      email: "fadil@example.nl",
-      voedingsplan: {
-        id: "4",
-        naam: "Spiermassa Opbouw - 2500 kcal",
-        type: "Bulk",
-        kcal: 2500,
-        status: "Actief",
-        aangemaakt: "2024-08-10",
-        laatsteUpdate: "2024-12-01",
-      },
-    },
-    {
-      klantId: "5",
-      klantNaam: "Sarah de Vries",
-      email: "sarah@example.nl",
-      voedingsplan: {
-        id: "5",
-        naam: "Afval Schema - 1500 kcal",
-        type: "Gewichtsverlies",
-        kcal: 1500,
-        status: "Actief",
-        aangemaakt: "2024-10-01",
-        laatsteUpdate: "2024-12-10",
-      },
-    },
-    {
-      klantId: "6",
-      klantNaam: "Mark Jansen",
-      email: "mark@example.nl",
-      voedingsplan: {
-        id: "6",
-        naam: "Spiermassa Opbouw - 2500 kcal",
-        type: "Bulk",
-        kcal: 2500,
-        status: "Actief",
-        aangemaakt: "2024-09-15",
-        laatsteUpdate: "2024-12-05",
-      },
-    },
-    {
-      klantId: "7",
-      klantNaam: "Emma Bakker",
-      email: "emma@example.nl",
-      voedingsplan: {
-        id: "7",
-        naam: "Onderhoud Schema - 2000 kcal",
-        type: "Onderhoud",
-        kcal: 2000,
-        status: "Voltooid",
-        aangemaakt: "2024-05-01",
-        laatsteUpdate: "2024-10-15",
-      },
-    },
-    {
-      klantId: "8",
-      klantNaam: "Erwin Altena",
-      email: "erwin@example.nl",
-      voedingsplan: {
-        id: "8",
-        naam: "Onderhoud Schema - 2000 kcal",
-        type: "Onderhoud",
-        kcal: 2000,
-        status: "Actief",
-        aangemaakt: "2024-09-20",
-        laatsteUpdate: "2024-12-12",
-      },
-    },
-  ];
+  });
 
-  const adviezen = [
-    {
-      id: "1",
-      klant: "Marijn Besseler",
-      onderwerp: "Eiwitinname verhogen",
-      datum: "2024-12-15",
-      status: "Afgerond",
+  // Transform data to match the expected format
+  const klantenMetPlannen = nutritionPlans.map((plan) => ({
+    klantId: plan.clientId,
+    klantNaam: plan.client.name,
+    email: plan.client.email,
+    voedingsplan: {
+      id: plan.id,
+      naam: plan.name,
+      type: plan.type,
+      kcal: plan.kcal,
+      status: plan.status,
+      aangemaakt: plan.aangemaakt.toISOString().split("T")[0],
+      laatsteUpdate: plan.laatsteUpdate.toISOString().split("T")[0],
     },
-    {
-      id: "2",
-      klant: "Erwin Altena",
-      onderwerp: "Meal prep strategie",
-      datum: "2024-12-14",
-      status: "In behandeling",
-    },
-    {
-      id: "3",
-      klant: "Sarah de Vries",
-      onderwerp: "Koolhydraat timing",
-      datum: "2024-12-13",
-      status: "Afgerond",
-    },
-  ];
+  }));
+
+  // For now, we'll keep adviezen as empty or remove the section
+  // TODO: Add adviezen to database schema if needed
+  const adviezen: any[] = [];
 
   const stats = {
-    totalKlanten: klantenMetPlannen.length,
-    actievePlannen: klantenMetPlannen.filter((k) => k.voedingsplan.status === "Actief").length,
-    openstaandeAdviezen: adviezen.filter((a) => a.status === "In behandeling").length,
+    totalKlanten: await prisma.client.count(),
+    actievePlannen: await prisma.nutritionPlan.count({
+      where: { status: "Actief" },
+    }),
+    openstaandeAdviezen: 0, // Placeholder until adviezen are added to database
   };
 
   return (
@@ -238,6 +139,10 @@ export default async function VoedingPage() {
                         <button className="dashboard-action-btn" title="Bewerken">
                           <UtensilsCrossed size={16} />
                         </button>
+                        <DeleteButton
+                          onDelete={() => deleteNutritionPlan(item.voedingsplan.id)}
+                          itemName={item.voedingsplan.naam}
+                        />
                       </div>
                     </td>
                   </tr>
@@ -248,48 +153,50 @@ export default async function VoedingPage() {
         </div>
       </div>
 
-      {/* Recente Adviezen */}
-      <div className="page-section">
-        <h2 className="page-section__title">Recente Voedingsadviezen</h2>
-        <div className="page-card">
-          <div className="dashboard-table">
-            <table>
-              <thead>
-                <tr>
-                  <th>Klant</th>
-                  <th>Onderwerp</th>
-                  <th>Datum</th>
-                  <th>Status</th>
-                  <th>Acties</th>
-                </tr>
-              </thead>
-              <tbody>
-                {adviezen.map((advies) => (
-                  <tr key={advies.id}>
-                    <td>
-                      <strong>{advies.klant}</strong>
-                    </td>
-                    <td>{advies.onderwerp}</td>
-                    <td>{new Date(advies.datum).toLocaleDateString("nl-NL")}</td>
-                    <td>
-                      <span className={`dashboard-badge dashboard-badge--${advies.status.toLowerCase().replace(" ", "-")}`}>
-                        {advies.status}
-                      </span>
-                    </td>
-                    <td>
-                      <div className="dashboard-actions">
-                        <button className="dashboard-action-btn" title="Bekijken">
-                          <FileText size={16} />
-                        </button>
-                      </div>
-                    </td>
+      {/* Recente Adviezen - Temporarily hidden until adviezen are added to database */}
+      {adviezen.length > 0 && (
+        <div className="page-section">
+          <h2 className="page-section__title">Recente Voedingsadviezen</h2>
+          <div className="page-card">
+            <div className="dashboard-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Klant</th>
+                    <th>Onderwerp</th>
+                    <th>Datum</th>
+                    <th>Status</th>
+                    <th>Acties</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {adviezen.map((advies) => (
+                    <tr key={advies.id}>
+                      <td>
+                        <strong>{advies.klant}</strong>
+                      </td>
+                      <td>{advies.onderwerp}</td>
+                      <td>{new Date(advies.datum).toLocaleDateString("nl-NL")}</td>
+                      <td>
+                        <span className={`dashboard-badge dashboard-badge--${advies.status.toLowerCase().replace(" ", "-")}`}>
+                          {advies.status}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="dashboard-actions">
+                          <button className="dashboard-action-btn" title="Bekijken">
+                            <FileText size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

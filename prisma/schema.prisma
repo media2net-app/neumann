@@ -95,3 +95,57 @@ model Review {
   @@index([clientId])
   @@map("reviews")
 }
+
+model Ingredient {
+  id           String   @id @default(cuid())
+  name         String
+  category     String?  // "Vlees & Vis" | "Eieren & Zuivel" | "Peulvruchten & Noten" | etc.
+  preparation  String?  // "Rauw" | "Gekookt" | "Gebakken" | "Geroosterd" | null (voor producten die niet gekookt worden)
+  kcal         Float    // per 100g
+  protein      Float    // per 100g
+  carbs        Float    // per 100g
+  fats         Float    // per 100g
+  source       String?  // Bron van de voedingswaarden (bijv. "NEVO", "USDA", "Fabrikant")
+  notes        String?  // Extra opmerkingen over bereiding of gebruik
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  recipeIngredients RecipeIngredient[]
+
+  @@unique([name, preparation])
+  @@map("ingredients")
+}
+
+model Recipe {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  time        String?  // "10 min"
+  portions    Int      @default(1)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  ingredients RecipeIngredient[]
+
+  @@map("recipes")
+}
+
+model RecipeIngredient {
+  id           String   @id @default(cuid())
+  recipeId     String
+  ingredientId String
+  amount       Float    // hoeveelheid in grammen
+  portion      String?  // "50g", "1 middelgroot", etc.
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  recipe     Recipe     @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  ingredient Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+
+  @@index([recipeId])
+  @@index([ingredientId])
+  @@map("recipe_ingredients")
+}

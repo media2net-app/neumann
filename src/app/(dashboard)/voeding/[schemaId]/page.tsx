@@ -1,25 +1,64 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams, useSearchParams, useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Edit, ArrowLeft, Plus, X, Search, Clock, UtensilsCrossed, Sparkles } from "lucide-react";
 import Link from "next/link";
 
-export default function SchemaDetailPage() {
-  const params = useParams();
-  const searchParams = useSearchParams();
+function SchemaDetailContent({ schemaId }: { schemaId: string }) {
   const router = useRouter();
-  const clientId = params.client as string;
+  const [schema, setSchema] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Haal data uit URL parameters (van calculator)
-  const klantNaam = searchParams.get("klantNaam") || "Nieuwe Klant";
-  const doelKcal = parseInt(searchParams.get("doelKcal") || "2000");
-  const eiwit = parseInt(searchParams.get("eiwit") || "150");
-  const koolhydraten = parseInt(searchParams.get("koolhydraten") || "200");
-  const vetten = parseInt(searchParams.get("vetten") || "65");
-  const doel = searchParams.get("doel") || "onderhoud";
+  useEffect(() => {
+    async function loadPlan() {
+      try {
+        const response = await fetch(`/api/voeding/${schemaId}`);
+        if (!response.ok) {
+          router.push("/voeding");
+          return;
+        }
+        const data = await response.json();
+        setSchema(data);
+      } catch (error) {
+        console.error("Error loading plan:", error);
+        router.push("/voeding");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadPlan();
+  }, [schemaId, router]);
+
+  if (isLoading) {
+    return (
+      <div className="page-admin">
+        <div className="page-header">
+          <h1>Laden...</h1>
+        </div>
+      </div>
+    );
+  }
+
+  if (!schema) {
+    return (
+      <div className="page-admin">
+        <div className="page-header">
+          <h1>Voedingsplan niet gevonden</h1>
+          <Link href="/voeding" className="btn btn--secondary">
+            <ArrowLeft size={16} />
+            Terug naar Voedingsplannen
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   // Bereken percentages
+  const eiwit = schema.eiwit;
+  const koolhydraten = schema.koolhydraten;
+  const vetten = schema.vetten;
+  const doelKcal = schema.calorieën;
   const eiwitKcal = eiwit * 4;
   const koolhydratenKcal = koolhydraten * 4;
   const vettenKcal = vetten * 9;
@@ -27,26 +66,15 @@ export default function SchemaDetailPage() {
   const koolhydratenPercentage = Math.round((koolhydratenKcal / doelKcal) * 100);
   const vettenPercentage = Math.round((vettenKcal / doelKcal) * 100);
 
-  // Bepaal type op basis van doel
-  const typeMap: { [key: string]: string } = {
-    afvallen: "Gewichtsverlies",
-    onderhoud: "Onderhoud",
-    aankomen: "Spiermassa Opbouw",
+  // Bepaal doel op basis van type
+  const typeToDoelMap: Record<string, string> = {
+    "Gewichtsverlies": "afvallen",
+    "Spieropbouw": "aankomen",
+    "Bulk": "aankomen",
+    "Onderhoud": "onderhoud",
+    "Revalidatie": "onderhoud",
   };
-  const type = typeMap[doel] || "Onderhoud";
-
-  const schema = {
-    id: params.schemaId as string,
-    naam: `${type} Schema - ${doelKcal} kcal`,
-    type,
-    calorieën: doelKcal,
-    eiwit,
-    koolhydraten,
-    vetten,
-    klantNaam,
-    status: "Actief",
-    aangemaakt: new Date().toISOString().split("T")[0],
-  };
+  const doel = typeToDoelMap[schema.type] || "onderhoud";
 
   // Helper functie om maaltijden te genereren
   const genereerMaaltijden = () => {
@@ -191,8 +219,49 @@ export default function SchemaDetailPage() {
     vetten: "",
   });
 
-  // Ingrediënten database (per 100g)
-  const ingrediëntenDatabase = [
+  // State voor ingrediënten en recepten
+  const [ingrediëntenDatabase, setIngrediëntenDatabase] = useState<any[]>([]);
+  const [recepten, setRecepten] = useState<any[]>([]);
+  const [isLoadingData, setIsLoadingData] = useState(true);
+
+  // Load ingredients and recipes from API
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [ingredientsRes, recipesRes] = await Promise.all([
+          fetch("/api/ingredienten"),
+          fetch("/api/recepten"),
+        ]);
+
+        if (ingredientsRes.ok) {
+          const ingredients = await ingredientsRes.json();
+          // Transform to match expected format
+          setIngrediëntenDatabase(
+            ingredients.map((ing: any) => ({
+              naam: ing.name,
+              kcal: ing.kcal,
+              eiwit: ing.protein,
+              koolhydraten: ing.carbs,
+              vetten: ing.fats,
+            }))
+          );
+        }
+
+        if (recipesRes.ok) {
+          const recipesData = await recipesRes.json();
+          setRecepten(recipesData);
+        }
+      } catch (error) {
+        console.error("Error loading ingredients/recipes:", error);
+      } finally {
+        setIsLoadingData(false);
+      }
+    }
+    loadData();
+  }, []);
+
+  // Fallback ingrediënten database (per 100g) - wordt gebruikt tot data geladen is
+  const fallbackIngrediëntenDatabase = [
     // Vlees & Vis
     { naam: "Kipfilet", kcal: 165, eiwit: 31, koolhydraten: 0, vetten: 3.6 },
     { naam: "Kippendij", kcal: 209, eiwit: 26, koolhydraten: 0, vetten: 10.9 },
@@ -322,62 +391,10 @@ export default function SchemaDetailPage() {
   ];
 
   const [ingrediëntZoekterm, setIngrediëntZoekterm] = useState("");
-  const gefilterdeIngrediënten = ingrediëntenDatabase.filter((ing) =>
+  const activeIngrediëntenDatabase = ingrediëntenDatabase.length > 0 ? ingrediëntenDatabase : fallbackIngrediëntenDatabase;
+  const gefilterdeIngrediënten = activeIngrediëntenDatabase.filter((ing) =>
     ing.naam.toLowerCase().includes(ingrediëntZoekterm.toLowerCase())
   );
-
-  // Dummy recepten database
-  const recepten = [
-    {
-      id: "1",
-      naam: "Havermout met bessen",
-      tijd: "10 min",
-      porties: 1,
-      ingrediënten: [
-        { naam: "Havermout", portie: "50g", kcal: 180, eiwit: 6, koolhydraten: 30, vetten: 3 },
-        { naam: "Banaan", portie: "1 middelgroot", kcal: 105, eiwit: 1, koolhydraten: 27, vetten: 0 },
-        { naam: "Blauwe bessen", portie: "50g", kcal: 28, eiwit: 0, koolhydraten: 7, vetten: 0 },
-      ],
-      totaal: { kcal: 313, eiwit: 7, koolhydraten: 64, vetten: 3 },
-    },
-    {
-      id: "2",
-      naam: "Griekse salade met kip",
-      tijd: "20 min",
-      porties: 1,
-      ingrediënten: [
-        { naam: "Kipfilet", portie: "150g", kcal: 248, eiwit: 46, koolhydraten: 0, vetten: 5 },
-        { naam: "Komkommer", portie: "100g", kcal: 16, eiwit: 1, koolhydraten: 4, vetten: 0 },
-        { naam: "Tomaat", portie: "100g", kcal: 18, eiwit: 1, koolhydraten: 4, vetten: 0 },
-        { naam: "Feta", portie: "50g", kcal: 125, eiwit: 7, koolhydraten: 2, vetten: 10 },
-      ],
-      totaal: { kcal: 407, eiwit: 55, koolhydraten: 10, vetten: 15 },
-    },
-    {
-      id: "3",
-      naam: "Zalm met groenten",
-      tijd: "25 min",
-      porties: 1,
-      ingrediënten: [
-        { naam: "Zalm", portie: "150g", kcal: 312, eiwit: 44, koolhydraten: 0, vetten: 14 },
-        { naam: "Broccoli", portie: "150g", kcal: 51, eiwit: 4, koolhydraten: 10, vetten: 1 },
-        { naam: "Zoete aardappel", portie: "200g", kcal: 180, eiwit: 4, koolhydraten: 41, vetten: 0 },
-      ],
-      totaal: { kcal: 543, eiwit: 52, koolhydraten: 51, vetten: 15 },
-    },
-    {
-      id: "4",
-      naam: "Eiwitrijke smoothie",
-      tijd: "5 min",
-      porties: 1,
-      ingrediënten: [
-        { naam: "Griekse yoghurt", portie: "200g", kcal: 260, eiwit: 20, koolhydraten: 18, vetten: 10 },
-        { naam: "Banaan", portie: "1 middelgroot", kcal: 105, eiwit: 1, koolhydraten: 27, vetten: 0 },
-        { naam: "Eiwitpoeder", portie: "30g", kcal: 120, eiwit: 24, koolhydraten: 3, vetten: 1 },
-      ],
-      totaal: { kcal: 485, eiwit: 45, koolhydraten: 48, vetten: 11 },
-    },
-  ];
 
   const [receptZoekterm, setReceptZoekterm] = useState("");
   const gefilterdeRecepten = recepten.filter((r) =>
@@ -388,7 +405,7 @@ export default function SchemaDetailPage() {
     <div className="page-admin">
       <div className="page-header">
         <div>
-          <Link href={`/clients/${clientId}/voeding`} className="dashboard-card__link" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+          <Link href="/voeding" className="dashboard-card__link" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
             <ArrowLeft size={16} />
             Terug naar Voedingsplannen
           </Link>
@@ -1719,7 +1736,7 @@ export default function SchemaDetailPage() {
                             : ["Gebalanceerd"];
                         
                         const aiPlanParams = new URLSearchParams({
-                          klantNaam: klantNaam,
+                          klantNaam: schema.klantNaam,
                           doelKcal: doelKcal.toString(),
                           eiwit: eiwit.toString(),
                           koolhydraten: koolhydraten.toString(),
@@ -1734,7 +1751,7 @@ export default function SchemaDetailPage() {
                         setIsGenerating(false);
                         setIsAIGeneratorOpen(false);
                         setAiOptions(defaultAiOptions);
-                        router.push(`/clients/${clientId}/voeding/ai-plan?${aiPlanParams.toString()}`);
+                        router.push(`/voeding/ai-plan?${aiPlanParams.toString()}`);
                       }, 2000);
                     }}
                     disabled={isGenerating}
@@ -1791,4 +1808,11 @@ export default function SchemaDetailPage() {
       )}
     </div>
   );
+}
+
+export default function SchemaDetailPage() {
+  const params = useParams();
+  const schemaId = params.schemaId as string;
+  
+  return <SchemaDetailContent schemaId={schemaId} />;
 }

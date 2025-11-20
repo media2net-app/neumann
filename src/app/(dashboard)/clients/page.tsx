@@ -2,6 +2,8 @@ import { getNeumannClient } from "@/lib/clients";
 import { prisma } from "@/lib/prisma";
 import { Edit, Calendar, Plus, Mail, Phone, Target } from "lucide-react";
 import Link from "next/link";
+import DeleteButton from "@/components/DeleteButton";
+import { deleteClient } from "./actions";
 
 export default async function ClientsPage() {
   const client = getNeumannClient();
@@ -141,11 +143,12 @@ export default async function ClientsPage() {
                       {clientItem.status}
                     </span>
                   </div>
-                  <div className="dashboard-actions">
+                  <div className="dashboard-actions" onClick={(e) => e.stopPropagation()}>
                     <Link
                       href={`/clients/${clientItem.id}`}
                       className="dashboard-action-btn" 
                       title="Bekijken"
+                      onClick={(e) => e.stopPropagation()}
                     >
                       <Edit size={16} />
                     </Link>
@@ -153,9 +156,15 @@ export default async function ClientsPage() {
                       href={`/clients/${clientItem.id}`}
                       className="dashboard-action-btn" 
                       title="Agenda"
+                      onClick={(e) => e.stopPropagation()}
                     >
                       <Calendar size={16} />
                     </Link>
+                    <DeleteButton
+                      onDelete={() => deleteClient(clientItem.id)}
+                      itemName={clientItem.name}
+                      redirectPath="/clients"
+                    />
                   </div>
                 </div>
 

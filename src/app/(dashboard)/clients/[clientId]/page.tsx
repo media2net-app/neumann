@@ -2,6 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Edit, Mail, Phone, MapPin, Calendar, Target, User, Clock, CheckCircle2, UtensilsCrossed, Star, Euro } from "lucide-react";
 import Link from "next/link";
+import DeleteButton from "@/components/DeleteButton";
+import { deleteClient } from "../actions";
 
 type ClientDetailPageProps = {
   params: Promise<{ clientId: string }>;
@@ -63,11 +65,17 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
             {client.type} • <span className={`dashboard-badge dashboard-badge--${client.status.toLowerCase()}`}>{client.status}</span>
           </p>
         </div>
-        <div className="page-header__actions">
+        <div className="page-header__actions" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
           <Link href={`/clients/${clientId}/edit`} className="btn btn--primary">
             <Edit size={16} />
             Bewerken
           </Link>
+          <DeleteButton
+            onDelete={() => deleteClient(clientId)}
+            itemName={client.name}
+            redirectPath="/clients"
+            className="btn btn--secondary"
+          />
           <Link href="/clients" className="btn btn--secondary">
             <ArrowLeft size={16} />
             Terug
