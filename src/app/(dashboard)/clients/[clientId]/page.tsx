@@ -296,6 +296,7 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
                     style={{ textDecoration: "none", color: "inherit" }}
                   >
                     <div
+                      className="dashboard-card dashboard-card--hoverable"
                       style={{
                         padding: "1rem",
                         background: "var(--client-surface)",
@@ -303,14 +304,6 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
                         border: "1px solid var(--client-border)",
                         transition: "all 0.2s ease",
                         cursor: "pointer",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = "translateX(4px)";
-                        e.currentTarget.style.borderColor = "var(--client-brand)";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = "translateX(0)";
-                        e.currentTarget.style.borderColor = "var(--client-border)";
                       }}
                     >
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.75rem" }}>

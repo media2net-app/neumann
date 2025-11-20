@@ -1,84 +1,39 @@
 "use client";
 
-import { useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useState, useEffect, useTransition, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Calculator, Save } from "lucide-react";
 import Link from "next/link";
-import { neumannDashboardData } from "@/lib/dashboard-data";
+import { getClients, createNutritionPlan } from "./actions";
 
-export default function KcalCalculatorPage() {
-  const params = useParams();
+function KcalCalculatorContent() {
   const router = useRouter();
-  const clientId = params.client as string;
+  const searchParams = useSearchParams();
+  const clientIdFromUrl = searchParams.get("clientId");
+  
+  const [isPending, startTransition] = useTransition();
+  const [clients, setClients] = useState<any[]>([]);
+  const [isLoadingClients, setIsLoadingClients] = useState(true);
 
-  // Haal alle klanten op
-  const allClients = [
-    ...neumannDashboardData.clients,
-    {
-      id: "5",
-      name: "Sarah de Vries",
-      email: "sarah@example.nl",
-      phone: "06-56789012",
-      status: "Actief",
-      goal: "Afvallen & conditie opbouwen",
-      startDate: "2024-10-01",
-      nextSession: "2024-12-21",
-      type: "Duo Training",
-      sessionsCompleted: 10,
-      totalSessions: 20,
-      progress: 50,
-      package: "Duo pakket",
-      value: 1200,
-    },
-    {
-      id: "6",
-      name: "Mark Jansen",
-      email: "mark@example.nl",
-      phone: "06-67890123",
-      status: "Actief",
-      goal: "Spieropbouw & kracht",
-      startDate: "2024-09-15",
-      nextSession: "2024-12-22",
-      type: "1-op-1 Training",
-      sessionsCompleted: 15,
-      totalSessions: 30,
-      progress: 50,
-      package: "Performance pakket",
-      value: 1950,
-    },
-    {
-      id: "7",
-      name: "Emma Bakker",
-      email: "emma@example.nl",
-      phone: "06-78901234",
-      status: "Voltooid",
-      goal: "Revalidatie schouderblessure",
-      startDate: "2024-05-01",
-      nextSession: null,
-      type: "1-op-1 Training",
-      sessionsCompleted: 20,
-      totalSessions: 20,
-      progress: 100,
-      package: "Revalidatie pakket",
-      value: 1300,
-    },
-    {
-      id: "8",
-      name: "Erwin Altena",
-      email: "erwin@example.nl",
-      phone: "06-89012345",
-      status: "Actief",
-      goal: "Gewichtsverlies & conditie",
-      startDate: "2024-09-20",
-      nextSession: "2024-12-23",
-      type: "1-op-1 Training",
-      sessionsCompleted: 12,
-      totalSessions: 24,
-      progress: 50,
-      package: "Online pakket",
-      value: 960,
-    },
-  ];
+  // Load clients on mount
+  useEffect(() => {
+    getClients().then((data) => {
+      setClients(data);
+      setIsLoadingClients(false);
+      
+      // If clientId is in URL, set it
+      if (clientIdFromUrl) {
+        const client = data.find((c: any) => c.id === clientIdFromUrl);
+        if (client) {
+          setFormData((prev) => ({
+            ...prev,
+            klantId: clientIdFromUrl,
+            klantNaam: client.name,
+          }));
+        }
+      }
+    });
+  }, [clientIdFromUrl]);
 
   const [formData, setFormData] = useState({
     klantId: "",
@@ -102,22 +57,22 @@ export default function KcalCalculatorPage() {
 
   // Activiteitsfactoren
   const activiteitsfactoren = {
-    licht: 1.2, // Weinig of geen beweging
-    matig: 1.375, // Lichte beweging 1-3 dagen per week
-    actief: 1.55, // Matige beweging 3-5 dagen per week
-    zeer_actief: 1.725, // Zware beweging 6-7 dagen per week
+    licht: 1.2,
+    matig: 1.375,
+    actief: 1.55,
+    zeer_actief: 1.725,
   };
 
   // Doel aanpassingen
   const doelAanpassingen = {
-    afvallen: -500, // 500 kcal deficit voor ~0.5kg per week
+    afvallen: -500,
     onderhoud: 0,
-    aankomen: 300, // 300 kcal surplus voor geleidelijke gewichtstoename
+    aankomen: 300,
   };
 
   const handleKlantChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedKlantId = e.target.value;
-    const selectedKlant = allClients.find((c) => c.id === selectedKlantId);
+    const selectedKlant = clients.find((c) => c.id === selectedKlantId);
     setFormData((prev) => ({
       ...prev,
       klantId: selectedKlantId,
@@ -135,7 +90,7 @@ export default function KcalCalculatorPage() {
       return;
     }
 
-    // Mifflin-St Jeor formule (meest accuraat)
+    // Mifflin-St Jeor formule
     let bmr: number;
     if (formData.geslacht === "man") {
       bmr = 10 * gewicht + 6.25 * lengte - 5 * leeftijd + 5;
@@ -143,38 +98,32 @@ export default function KcalCalculatorPage() {
       bmr = 10 * gewicht + 6.25 * lengte - 5 * leeftijd - 161;
     }
 
-    // TDEE (Total Daily Energy Expenditure)
     const tdee = Math.round(bmr * activiteitsfactoren[formData.activiteitsniveau]);
-
-    // Doel kcal
     const doelKcal = Math.round(tdee + doelAanpassingen[formData.doel]);
 
-    // Macro's berekenen (standaard verdeling)
+    // Macro's berekenen
     let eiwit: number;
     let koolhydraten: number;
     let vetten: number;
 
     if (formData.doel === "afvallen") {
-      // Bij afvallen: meer eiwit, minder koolhydraten
-      eiwit = Math.round(gewicht * 2.2); // 2.2g per kg lichaamsgewicht
-      vetten = Math.round((doelKcal * 0.25) / 9); // 25% van kcal uit vetten
+      eiwit = Math.round(gewicht * 2.2);
+      vetten = Math.round((doelKcal * 0.25) / 9);
       const eiwitKcal = eiwit * 4;
       const vettenKcal = vetten * 9;
       const koolhydratenKcal = doelKcal - eiwitKcal - vettenKcal;
       koolhydraten = Math.round(koolhydratenKcal / 4);
     } else if (formData.doel === "aankomen") {
-      // Bij aankomen: meer koolhydraten
-      eiwit = Math.round(gewicht * 2); // 2g per kg lichaamsgewicht
-      vetten = Math.round((doelKcal * 0.25) / 9); // 25% van kcal uit vetten
+      eiwit = Math.round(gewicht * 2);
+      vetten = Math.round((doelKcal * 0.25) / 9);
       const eiwitKcal = eiwit * 4;
       const vettenKcal = vetten * 9;
       const koolhydratenKcal = doelKcal - eiwitKcal - vettenKcal;
       koolhydraten = Math.round(koolhydratenKcal / 4);
     } else {
-      // Onderhoud: gebalanceerd
-      eiwit = Math.round(gewicht * 1.8); // 1.8g per kg lichaamsgewicht
-      koolhydraten = Math.round((doelKcal * 0.45) / 4); // 45% van kcal uit koolhydraten
-      vetten = Math.round((doelKcal * 0.25) / 9); // 25% van kcal uit vetten
+      eiwit = Math.round(gewicht * 1.8);
+      koolhydraten = Math.round((doelKcal * 0.45) / 4);
+      vetten = Math.round((doelKcal * 0.25) / 9);
     }
 
     setResultaat({
@@ -202,12 +151,45 @@ export default function KcalCalculatorPage() {
     berekenKcal();
   };
 
+  const handleSavePlan = async () => {
+    if (!resultaat || !formData.klantId) {
+      alert("Bereken eerst de kcal waarden");
+      return;
+    }
+
+    const typeMap: { [key: string]: string } = {
+      afvallen: "Gewichtsverlies",
+      onderhoud: "Onderhoud",
+      aankomen: "Spieropbouw",
+    };
+
+    const planName = `${typeMap[formData.doel]} Schema - ${resultaat.doelKcal} kcal`;
+
+    startTransition(async () => {
+      const result = await createNutritionPlan({
+        clientId: formData.klantId,
+        name: planName,
+        type: typeMap[formData.doel] || "Onderhoud",
+        kcal: resultaat.doelKcal,
+        protein: resultaat.eiwit,
+        carbs: resultaat.koolhydraten,
+        fats: resultaat.vetten,
+      });
+
+      if (result.success && result.plan) {
+        router.push(`/voeding/${result.plan.id}`);
+      } else {
+        alert(result.error || "Er is een fout opgetreden");
+      }
+    });
+  };
+
   return (
     <div className="page-admin">
       <div className="page-header">
         <div>
           <Link
-            href={`/clients/${clientId}/voeding`}
+            href="/voeding"
             className="dashboard-card__link"
             style={{
               display: "inline-flex",
@@ -219,15 +201,15 @@ export default function KcalCalculatorPage() {
             <ArrowLeft size={16} />
             Terug naar Voedingsplannen
           </Link>
-          <h1>Kcal Calculator</h1>
+          <h1>Nieuw Voedingsplan</h1>
           <p style={{ color: "#64748b", marginTop: "0.5rem" }}>
-            Bereken de dagelijkse caloriebehoefte voor een klant
+            Bereken de dagelijkse caloriebehoefte en maak een nieuw voedingsplan aan
           </p>
         </div>
       </div>
 
       <div className="page-section">
-        <div className="page-card">
+        <div className="dashboard-card">
           <form onSubmit={handleSubmit}>
             <div style={{ display: "grid", gap: "1.5rem" }}>
               {/* Klant Selectie */}
@@ -242,22 +224,28 @@ export default function KcalCalculatorPage() {
                 >
                   Selecteer Klant *
                 </label>
-                <select
-                  id="klantId"
-                  name="klantId"
-                  value={formData.klantId}
-                  onChange={handleKlantChange}
-                  required
-                  className="page-filter"
-                  style={{ width: "100%" }}
-                >
-                  <option value="">-- Selecteer een klant --</option>
-                  {allClients.map((klant) => (
-                    <option key={klant.id} value={klant.id}>
-                      {klant.name} {klant.status === "Actief" ? "✓" : ""}
-                    </option>
-                  ))}
-                </select>
+                {isLoadingClients ? (
+                  <div className="page-filter" style={{ width: "100%", padding: "0.75rem" }}>
+                    Klanten laden...
+                  </div>
+                ) : (
+                  <select
+                    id="klantId"
+                    name="klantId"
+                    value={formData.klantId}
+                    onChange={handleKlantChange}
+                    required
+                    className="page-filter"
+                    style={{ width: "100%" }}
+                  >
+                    <option value="">-- Selecteer een klant --</option>
+                    {clients.map((klant) => (
+                      <option key={klant.id} value={klant.id}>
+                        {klant.name} {klant.status === "Actief" ? "✓" : ""}
+                      </option>
+                    ))}
+                  </select>
+                )}
                 {formData.klantNaam && (
                   <span className="dashboard-table__meta" style={{ display: "block", marginTop: "0.5rem" }}>
                     Geselecteerd: {formData.klantNaam}
@@ -441,7 +429,7 @@ export default function KcalCalculatorPage() {
       {/* Resultaten */}
       {resultaat && (
         <div className="page-section">
-          <div className="page-card">
+          <div className="dashboard-card">
             <h2 style={{ marginBottom: "1.5rem" }}>Berekeningsresultaten</h2>
 
             {/* Stats Cards */}
@@ -495,39 +483,25 @@ export default function KcalCalculatorPage() {
             <div style={{ marginTop: "2rem", display: "flex", gap: "1rem" }}>
               <button
                 className="btn btn--primary"
-                onClick={() => {
-                  // Genereer een nieuw schema ID en stuur door naar detail pagina
-                  const schemaId = `schema-${Date.now()}`;
-                  const params = new URLSearchParams({
-                    klantNaam: formData.klantNaam,
-                    doelKcal: resultaat.doelKcal.toString(),
-                    eiwit: resultaat.eiwit.toString(),
-                    koolhydraten: resultaat.koolhydraten.toString(),
-                    vetten: resultaat.vetten.toString(),
-                    bmr: resultaat.bmr.toString(),
-                    tdee: resultaat.tdee.toString(),
-                    doel: formData.doel,
-                  });
-                  router.push(`/clients/${clientId}/voeding/${schemaId}?${params.toString()}`);
-                }}
+                onClick={handleSavePlan}
+                disabled={isPending || !formData.klantId}
               >
                 <Save size={16} />
-                Plan Aanmaken met deze Waarden
+                {isPending ? "Aanmaken..." : "Plan Aanmaken met deze Waarden"}
               </button>
               <button
                 className="btn btn--secondary"
                 onClick={() => {
                   setResultaat(null);
-                  setFormData({
-                    klantId: "",
-                    klantNaam: "",
+                  setFormData((prev) => ({
+                    ...prev,
                     geslacht: "man",
                     leeftijd: "",
                     gewicht: "",
                     lengte: "",
                     activiteitsniveau: "licht",
                     doel: "onderhoud",
-                  });
+                  }));
                 }}
               >
                 Nieuwe Berekening
@@ -540,3 +514,19 @@ export default function KcalCalculatorPage() {
   );
 }
 
+export default function KcalCalculatorPage() {
+  return (
+    <Suspense fallback={
+      <div className="page-admin">
+        <div className="page-header">
+          <div>
+            <h1>Nieuw Voedingsplan</h1>
+            <p style={{ color: "#64748b", marginTop: "0.5rem" }}>Laden...</p>
+          </div>
+        </div>
+      </div>
+    }>
+      <KcalCalculatorContent />
+    </Suspense>
+  );
+}
