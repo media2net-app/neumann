@@ -7,6 +7,9 @@ type ClientDetailPageProps = {
   params: Promise<{ clientId: string }>;
 };
 
+// Force dynamic rendering for this route
+export const dynamic = 'force-dynamic';
+
 export default async function ClientDetailPage({ params }: ClientDetailPageProps) {
   const resolvedParams = await params;
   const clientId = resolvedParams.clientId;
