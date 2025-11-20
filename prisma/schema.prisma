@@ -1,0 +1,97 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Client {
+  id                String   @id @default(cuid())
+  name              String
+  email             String   @unique
+  phone             String?
+  status            String   // "Actief" | "Voltooid" | "Inactief"
+  goal              String?   // Doel van de klant
+  startDate         DateTime
+  nextSession       DateTime?
+  type              String   // "1-op-1 Training" | "Duo Training" | "Online coaching"
+  sessionsCompleted Int      @default(0)
+  totalSessions     Int      @default(0)
+  progress          Int      @default(0) // Percentage 0-100
+  package           String?  // "Revalidatie pakket" | "Performance pakket" | etc.
+  value             Float    @default(0) // Totale waarde in euro's
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  sessions      Session[]
+  nutritionPlans NutritionPlan[]
+  reviews       Review[]
+
+  @@map("clients")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  clientId  String
+  date      DateTime
+  time      String?  // "10:00"
+  type      String   // "1-op-1 Training" | "Duo Training" | "Online coaching"
+  location  String?  // "Thuis" | "Park" | etc.
+  status    String   @default("Gepland") // "Gepland" | "Voltooid" | "Afgezegd"
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([date])
+  @@map("sessions")
+}
+
+model NutritionPlan {
+  id           String   @id @default(cuid())
+  clientId     String
+  name         String   // "Revalidatie Schema - Zachte Start"
+  type         String   // "Revalidatie" | "Gewichtsverlies" | "Spieropbouw" | "Bulk" | "Onderhoud"
+  kcal         Int
+  protein      Float?   // grammen
+  carbs        Float?   // grammen
+  fats         Float?   // grammen
+  status       String   @default("Actief") // "Actief" | "Voltooid" | "Gearchiveerd"
+  aangemaakt   DateTime @default(now())
+  laatsteUpdate DateTime @updatedAt
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@map("nutrition_plans")
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  clientId  String
+  name      String   // Naam van de reviewer
+  text      String
+  rating    Int      // 1-5
+  date      DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@map("reviews")
+}
