@@ -3,6 +3,7 @@ import { UtensilsCrossed, FileText, Plus } from "lucide-react";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import DeleteButton from "@/components/DeleteButton";
+import CopyClientLink from "@/components/CopyClientLink";
 import { deleteNutritionPlan } from "./nieuw/actions";
 
 export default async function VoedingPage() {
@@ -136,6 +137,7 @@ export default async function VoedingPage() {
                         <Link href={`/voeding/${item.voedingsplan.id}`} className="dashboard-action-btn" title="Bekijken">
                           <FileText size={16} />
                         </Link>
+                        <CopyClientLink planId={item.voedingsplan.id} />
                         <button className="dashboard-action-btn" title="Bewerken">
                           <UtensilsCrossed size={16} />
                         </button>
