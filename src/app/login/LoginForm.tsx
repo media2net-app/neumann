@@ -12,10 +12,10 @@ type LoginFormProps = {
 const ADMIN_EMAIL = "chiel@media2net.nl";
 const ADMIN_PASSWORD = "W4t3rk0k3r^";
 
-// Client/coach logins for Neumann
+// Client/coach logins for Neumann (eigen wachtwoorden, niet admin)
 const DIRECT_LOGIN_MAP: Record<string, { password: string; clientId: string }> = {
-  "info@neumannpt.nl": { password: ADMIN_PASSWORD, clientId: "neumann" },
-  "nick@neumannpt.nl": { password: ADMIN_PASSWORD, clientId: "neumann" },
+  "info@neumannpt.nl": { password: "NeumannPT26!", clientId: "neumann" },
+  "nick@neumannpt.nl": { password: "NeumannPT26!", clientId: "neumann" },
 };
 
 type Phase = "form" | "picker";
