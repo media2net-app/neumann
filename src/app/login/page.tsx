@@ -14,18 +14,15 @@ async function loginAction(clientId: string) {
     redirect("/login");
   }
 
-  // In Next.js 16, cookies() needs to be awaited in server actions
   const cookieStore = await cookies();
-  
-  // Set the cookie - in server actions, cookies() returns a mutable RequestCookies
-  (cookieStore as any).set("demo-client", clientId, {
+
+  cookieStore.set("demo-client", clientId, {
     path: "/",
     httpOnly: false,
     maxAge: 60 * 60 * 8,
     sameSite: "lax",
   });
 
-  // Redirect to the dashboard
   redirect("/dashboard");
 }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 import type { ClientConfig } from "@/lib/clients";
 
 type LoginFormProps = {
@@ -11,8 +12,11 @@ type LoginFormProps = {
 const ADMIN_EMAIL = "chiel@media2net.nl";
 const ADMIN_PASSWORD = "W4t3rk0k3r^";
 
-// Direct login map removed - only Neumann now
-const DIRECT_LOGIN_MAP: Record<string, { password: string; clientId: string }> = {};
+// Client/coach logins for Neumann
+const DIRECT_LOGIN_MAP: Record<string, { password: string; clientId: string }> = {
+  "info@neumannpt.nl": { password: ADMIN_PASSWORD, clientId: "neumann" },
+  "nick@neumannpt.nl": { password: ADMIN_PASSWORD, clientId: "neumann" },
+};
 
 type Phase = "form" | "picker";
 
@@ -34,11 +38,10 @@ export default function LoginForm({ clients, loginAction }: LoginFormProps) {
       try {
         await loginAction(clientId);
       } catch (err) {
-        const digest = (err as { digest?: string } | undefined)?.digest;
-        if (!digest || !digest.startsWith("NEXT_REDIRECT")) {
-          setError("Kon dashboard niet openen, probeer opnieuw.");
-          setSelectedClientName(null);
-        }
+        // Next.js redirects by throwing; must rethrow or login appears broken
+        if (isRedirectError(err)) throw err;
+        setError("Kon dashboard niet openen, probeer opnieuw.");
+        setSelectedClientName(null);
       }
     });
   };
