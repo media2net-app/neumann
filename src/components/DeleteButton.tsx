@@ -9,6 +9,7 @@ interface DeleteButtonProps {
   itemName: string;
   redirectPath?: string;
   className?: string;
+  showIcon?: boolean;
 }
 
 export default function DeleteButton({ onDelete, itemName, redirectPath, className = "dashboard-action-btn", showIcon = true }: DeleteButtonProps) {

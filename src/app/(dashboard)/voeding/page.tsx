@@ -140,7 +140,7 @@ export default async function VoedingPage() {
                           <UtensilsCrossed size={16} />
                         </button>
                         <DeleteButton
-                          onDelete={() => deleteNutritionPlan(item.voedingsplan.id)}
+                          onDelete={deleteNutritionPlan.bind(null, item.voedingsplan.id)}
                           itemName={item.voedingsplan.naam}
                         />
                       </div>

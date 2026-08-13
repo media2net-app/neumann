@@ -71,7 +71,7 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
             Bewerken
           </Link>
           <DeleteButton
-            onDelete={() => deleteClient(clientId)}
+            onDelete={deleteClient.bind(null, clientId)}
             itemName={client.name}
             redirectPath="/clients"
             className="btn btn--secondary"

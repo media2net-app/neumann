@@ -5,10 +5,285 @@ import { useParams, useRouter } from "next/navigation";
 import { Edit, ArrowLeft, Plus, X, Search, Clock, UtensilsCrossed, Sparkles } from "lucide-react";
 import Link from "next/link";
 
+const DAGEN = ["Maandag", "Dinsdag", "Woensdag", "Donderdag", "Vrijdag", "Zaterdag", "Zondag"] as const;
+
+const AI_VLEES_OPTIES = [
+  "Kip",
+  "Rundvlees",
+  "Varkensvlees",
+  "Vis",
+  "Zalm",
+  "Makreel",
+  "Tonijn",
+  "Eieren",
+  "Tofu",
+  "Tempeh",
+];
+
+const AI_GROENTEN_OPTIES = [
+  "Broccoli",
+  "Spinazie",
+  "Wortelen",
+  "Paprika",
+  "Courgette",
+  "Tomaten",
+  "Komkommer",
+  "Bloemkool",
+  "Boerenkool",
+];
+
+const VIS_NAMEN = ["zalm", "tonijn", "kabeljauw", "makreel", "garnalen", "pangasius"];
+
+type Ingredient = {
+  naam: string;
+  portie: string;
+  kcal: number;
+  eiwit: number;
+  koolhydraten: number;
+  vetten: number;
+};
+
+type Maaltijd = {
+  id: string;
+  naam: string;
+  tijd: string;
+  bereidingswijze: string;
+  ingrediënten: Ingredient[];
+  totaleKcal: number;
+  eiwit: number;
+  koolhydraten: number;
+  vetten: number;
+};
+
+type DagMenu = {
+  dag: string;
+  maaltijden: Maaltijd[];
+  dagTotaal: { kcal: number; eiwit: number; koolhydraten: number; vetten: number };
+  percentages: { eiwit: number; koolhydraten: number; vetten: number; kcal: number };
+  nogNodig: { eiwit: number; koolhydraten: number; vetten: number; kcal: number };
+};
+
+function cleanBereidingswijze(text: string, ingredientName: string): string {
+  if (!text?.trim()) return "";
+  const needle = ingredientName.toLowerCase();
+  return text
+    .split(/(?<=[.!?])\s+/)
+    .filter((sentence) => !sentence.toLowerCase().includes(needle))
+    .join(" ")
+    .trim();
+}
+
+function sumIngredients(ingrediënten: Ingredient[]) {
+  return ingrediënten.reduce(
+    (sum, ing) => ({
+      kcal: sum.kcal + ing.kcal,
+      eiwit: sum.eiwit + ing.eiwit,
+      koolhydraten: sum.koolhydraten + ing.koolhydraten,
+      vetten: sum.vetten + ing.vetten,
+    }),
+    { kcal: 0, eiwit: 0, koolhydraten: 0, vetten: 0 }
+  );
+}
+
+function withMealTotals(maaltijd: Omit<Maaltijd, "totaleKcal" | "eiwit" | "koolhydraten" | "vetten"> | Maaltijd): Maaltijd {
+  const totals = sumIngredients(maaltijd.ingrediënten);
+  return {
+    ...maaltijd,
+    bereidingswijze: maaltijd.bereidingswijze || "",
+    totaleKcal: totals.kcal,
+    eiwit: totals.eiwit,
+    koolhydraten: totals.koolhydraten,
+    vetten: totals.vetten,
+  };
+}
+
+function buildDagMenu(
+  dagNaam: string,
+  maaltijden: Maaltijd[],
+  targets: { eiwit: number; koolhydraten: number; vetten: number; doelKcal: number }
+): DagMenu {
+  const meals = maaltijden.map(withMealTotals);
+  const dagTotaal = meals.reduce(
+    (acc, m) => ({
+      kcal: acc.kcal + m.totaleKcal,
+      eiwit: acc.eiwit + m.eiwit,
+      koolhydraten: acc.koolhydraten + m.koolhydraten,
+      vetten: acc.vetten + m.vetten,
+    }),
+    { kcal: 0, eiwit: 0, koolhydraten: 0, vetten: 0 }
+  );
+
+  return {
+    dag: dagNaam,
+    maaltijden: meals,
+    dagTotaal,
+    percentages: {
+      eiwit: Math.round((dagTotaal.eiwit / targets.eiwit) * 100) || 0,
+      koolhydraten: Math.round((dagTotaal.koolhydraten / targets.koolhydraten) * 100) || 0,
+      vetten: Math.round((dagTotaal.vetten / targets.vetten) * 100) || 0,
+      kcal: Math.round((dagTotaal.kcal / targets.doelKcal) * 100) || 0,
+    },
+    nogNodig: {
+      eiwit: Math.max(0, targets.eiwit - dagTotaal.eiwit),
+      koolhydraten: Math.max(0, targets.koolhydraten - dagTotaal.koolhydraten),
+      vetten: Math.max(0, targets.vetten - dagTotaal.vetten),
+      kcal: Math.max(0, targets.doelKcal - dagTotaal.kcal),
+    },
+  };
+}
+
+function genereerMaaltijden(): Maaltijd[] {
+  return [
+    withMealTotals({
+      id: "1",
+      naam: "Ontbijt",
+      tijd: "08:00",
+      bereidingswijze:
+        "Kook de havermout met water of melk. Snijd de banaan in plakjes. Serveer met Griekse yoghurt en blauwe bessen.",
+      ingrediënten: [
+        { naam: "Havermout", portie: "50g", kcal: 180, eiwit: 6, koolhydraten: 30, vetten: 3 },
+        { naam: "Banaan", portie: "1 middelgroot", kcal: 105, eiwit: 1, koolhydraten: 27, vetten: 0 },
+        { naam: "Griekse yoghurt", portie: "100g", kcal: 130, eiwit: 10, koolhydraten: 9, vetten: 5 },
+        { naam: "Blauwe bessen", portie: "50g", kcal: 28, eiwit: 0, koolhydraten: 7, vetten: 0 },
+      ],
+    }),
+    withMealTotals({
+      id: "2",
+      naam: "Lunch",
+      tijd: "12:30",
+      bereidingswijze:
+        "Bak de kipfilet in een pan met olijfolie. Kook of bak de zoete aardappel. Stoom de broccoli tot hij beetgaar is.",
+      ingrediënten: [
+        { naam: "Kipfilet", portie: "150g", kcal: 248, eiwit: 46, koolhydraten: 0, vetten: 5 },
+        { naam: "Zoete aardappel", portie: "200g", kcal: 180, eiwit: 4, koolhydraten: 41, vetten: 0 },
+        { naam: "Broccoli", portie: "150g", kcal: 51, eiwit: 4, koolhydraten: 10, vetten: 1 },
+        { naam: "Olijfolie", portie: "1 eetlepel", kcal: 120, eiwit: 0, koolhydraten: 0, vetten: 14 },
+      ],
+    }),
+    withMealTotals({
+      id: "3",
+      naam: "Diner",
+      tijd: "18:00",
+      bereidingswijze:
+        "Bak de zalm in een pan met olijfolie tot hij gaar is. Kook de quinoa volgens de verpakking. Stoom de groene bonen.",
+      ingrediënten: [
+        { naam: "Zalm", portie: "150g", kcal: 312, eiwit: 44, koolhydraten: 0, vetten: 14 },
+        { naam: "Quinoa", portie: "100g (gekookt)", kcal: 120, eiwit: 4, koolhydraten: 22, vetten: 2 },
+        { naam: "Groene bonen", portie: "150g", kcal: 44, eiwit: 2, koolhydraten: 10, vetten: 0 },
+        { naam: "Avocado", portie: "50g", kcal: 80, eiwit: 1, koolhydraten: 4, vetten: 7 },
+      ],
+    }),
+    withMealTotals({
+      id: "4",
+      naam: "Snacks",
+      tijd: "10:00 & 15:00",
+      bereidingswijze: "Serveer de amandelen en appel als tussendoortje.",
+      ingrediënten: [
+        { naam: "Amandelen", portie: "20g", kcal: 116, eiwit: 4, koolhydraten: 4, vetten: 10 },
+        { naam: "Appel", portie: "1 middelgroot", kcal: 95, eiwit: 0, koolhydraten: 25, vetten: 0 },
+      ],
+    }),
+  ];
+}
+
+function ingredientMatchesExclusion(ingredientName: string, exclusion: string): boolean {
+  const name = ingredientName.toLowerCase();
+  const ex = exclusion.toLowerCase();
+  if (ex === "vis") {
+    return VIS_NAMEN.some((vis) => name.includes(vis));
+  }
+  return name.includes(ex);
+}
+
+function applyExclusionsToMaaltijden(maaltijden: Maaltijd[], exclusions: string[]): Maaltijd[] {
+  if (exclusions.length === 0) return maaltijden;
+  return maaltijden.map((maaltijd) => {
+    let bereidingswijze = maaltijd.bereidingswijze || "";
+    const ingrediënten = maaltijd.ingrediënten.filter((ing) => {
+      const excluded = exclusions.some((ex) => ingredientMatchesExclusion(ing.naam, ex));
+      if (excluded) {
+        bereidingswijze = cleanBereidingswijze(bereidingswijze, ing.naam);
+      }
+      return !excluded;
+    });
+    return withMealTotals({ ...maaltijd, ingrediënten, bereidingswijze });
+  });
+}
+
+/** Unchecked AI-opties worden exclusies; Vis expandeert naar vissorten die niet apart zijn aangevinkt. */
+function buildAiExclusions(selectedVlees: string[], selectedGroenten: string[]): string[] {
+  const exclusions: string[] = [];
+
+  if (selectedVlees.length > 0) {
+    for (const optie of AI_VLEES_OPTIES) {
+      if (selectedVlees.includes(optie)) continue;
+      if (optie === "Vis") {
+        const fishLabels = ["Zalm", "Makreel", "Tonijn", "Kabeljauw", "Garnalen"];
+        for (const fish of fishLabels) {
+          const stillWanted =
+            selectedVlees.includes("Vis") ||
+            selectedVlees.some((s) => s.toLowerCase() === fish.toLowerCase());
+          if (!stillWanted) exclusions.push(fish);
+        }
+      } else {
+        exclusions.push(optie);
+      }
+    }
+  }
+
+  if (selectedGroenten.length > 0) {
+    for (const optie of AI_GROENTEN_OPTIES) {
+      if (!selectedGroenten.includes(optie)) exclusions.push(optie);
+    }
+  }
+
+  return exclusions;
+}
+
+function buildWeekmenu(
+  targets: { eiwit: number; koolhydraten: number; vetten: number; doelKcal: number },
+  exclusions: string[] = []
+): DagMenu[] {
+  return DAGEN.map((dagNaam) =>
+    buildDagMenu(dagNaam, applyExclusionsToMaaltijden(genereerMaaltijden(), exclusions), targets)
+  );
+}
+
 function SchemaDetailContent({ schemaId }: { schemaId: string }) {
   const router = useRouter();
   const [schema, setSchema] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [weekmenu, setWeekmenu] = useState<DagMenu[]>([]);
+  const [actieveDag, setActieveDag] = useState<string>(DAGEN[0]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalTab, setModalTab] = useState<"maaltijd" | "ingrediënten" | "recepten">("maaltijd");
+  const [isAIGeneratorOpen, setIsAIGeneratorOpen] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const defaultAiOptions = {
+    aantalMaaltijden: "3",
+    soortMaaltijden: ["Gebalanceerd"] as string[],
+    vlees: [] as string[],
+    groenten: [] as string[],
+  };
+  const [aiOptions, setAiOptions] = useState(defaultAiOptions);
+  const [nieuweMaaltijd, setNieuweMaaltijd] = useState({
+    naam: "",
+    tijd: "",
+    type: "Ontbijt" as "Ontbijt" | "Lunch" | "Diner" | "Snacks",
+  });
+  const [nieuwIngrediënt, setNieuwIngrediënt] = useState({
+    naam: "",
+    portie: "",
+    kcal: "",
+    eiwit: "",
+    koolhydraten: "",
+    vetten: "",
+  });
+  const [ingrediëntenDatabase, setIngrediëntenDatabase] = useState<any[]>([]);
+  const [recepten, setRecepten] = useState<any[]>([]);
+  const [isLoadingData, setIsLoadingData] = useState(true);
+  const [ingrediëntZoekterm, setIngrediëntZoekterm] = useState("");
+  const [receptZoekterm, setReceptZoekterm] = useState("");
 
   useEffect(() => {
     async function loadPlan() {
@@ -30,201 +305,19 @@ function SchemaDetailContent({ schemaId }: { schemaId: string }) {
     loadPlan();
   }, [schemaId, router]);
 
-  if (isLoading) {
-    return (
-      <div className="page-admin">
-        <div className="page-header">
-          <h1>Laden...</h1>
-        </div>
-      </div>
+  // Initialiseer weekmenu wanneer schema geladen is
+  useEffect(() => {
+    if (!schema) return;
+    setWeekmenu(
+      buildWeekmenu({
+        eiwit: schema.eiwit,
+        koolhydraten: schema.koolhydraten,
+        vetten: schema.vetten,
+        doelKcal: schema.calorieën,
+      })
     );
-  }
+  }, [schema]);
 
-  if (!schema) {
-    return (
-      <div className="page-admin">
-        <div className="page-header">
-          <h1>Voedingsplan niet gevonden</h1>
-          <Link href="/voeding" className="btn btn--secondary">
-            <ArrowLeft size={16} />
-            Terug naar Voedingsplannen
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  // Bereken percentages
-  const eiwit = schema.eiwit;
-  const koolhydraten = schema.koolhydraten;
-  const vetten = schema.vetten;
-  const doelKcal = schema.calorieën;
-  const eiwitKcal = eiwit * 4;
-  const koolhydratenKcal = koolhydraten * 4;
-  const vettenKcal = vetten * 9;
-  const eiwitPercentage = Math.round((eiwitKcal / doelKcal) * 100);
-  const koolhydratenPercentage = Math.round((koolhydratenKcal / doelKcal) * 100);
-  const vettenPercentage = Math.round((vettenKcal / doelKcal) * 100);
-
-  // Bepaal doel op basis van type
-  const typeToDoelMap: Record<string, string> = {
-    "Gewichtsverlies": "afvallen",
-    "Spieropbouw": "aankomen",
-    "Bulk": "aankomen",
-    "Onderhoud": "onderhoud",
-    "Revalidatie": "onderhoud",
-  };
-  const doel = typeToDoelMap[schema.type] || "onderhoud";
-
-  // Helper functie om maaltijden te genereren
-  const genereerMaaltijden = () => {
-    return [
-      {
-        id: "1",
-        naam: "Ontbijt",
-        tijd: "08:00",
-        ingrediënten: [
-          { naam: "Havermout", portie: "50g", kcal: 180, eiwit: 6, koolhydraten: 30, vetten: 3 },
-          { naam: "Banaan", portie: "1 middelgroot", kcal: 105, eiwit: 1, koolhydraten: 27, vetten: 0 },
-          { naam: "Griekse yoghurt", portie: "100g", kcal: 130, eiwit: 10, koolhydraten: 9, vetten: 5 },
-          { naam: "Blauwe bessen", portie: "50g", kcal: 28, eiwit: 0, koolhydraten: 7, vetten: 0 },
-        ],
-      },
-      {
-        id: "2",
-        naam: "Lunch",
-        tijd: "12:30",
-        ingrediënten: [
-          { naam: "Kipfilet", portie: "150g", kcal: 248, eiwit: 46, koolhydraten: 0, vetten: 5 },
-          { naam: "Zoete aardappel", portie: "200g", kcal: 180, eiwit: 4, koolhydraten: 41, vetten: 0 },
-          { naam: "Broccoli", portie: "150g", kcal: 51, eiwit: 4, koolhydraten: 10, vetten: 1 },
-          { naam: "Olijfolie", portie: "1 eetlepel", kcal: 120, eiwit: 0, koolhydraten: 0, vetten: 14 },
-        ],
-      },
-      {
-        id: "3",
-        naam: "Diner",
-        tijd: "18:00",
-        ingrediënten: [
-          { naam: "Zalm", portie: "150g", kcal: 312, eiwit: 44, koolhydraten: 0, vetten: 14 },
-          { naam: "Quinoa", portie: "100g (gekookt)", kcal: 120, eiwit: 4, koolhydraten: 22, vetten: 2 },
-          { naam: "Groene bonen", portie: "150g", kcal: 44, eiwit: 2, koolhydraten: 10, vetten: 0 },
-          { naam: "Avocado", portie: "50g", kcal: 80, eiwit: 1, koolhydraten: 4, vetten: 7 },
-        ],
-      },
-      {
-        id: "4",
-        naam: "Snacks",
-        tijd: "10:00 & 15:00",
-        ingrediënten: [
-          { naam: "Amandelen", portie: "20g", kcal: 116, eiwit: 4, koolhydraten: 4, vetten: 10 },
-          { naam: "Appel", portie: "1 middelgroot", kcal: 95, eiwit: 0, koolhydraten: 25, vetten: 0 },
-        ],
-      },
-    ];
-  };
-
-  // Genereer weekmenu (maandag t/m zondag)
-  const dagen = ["Maandag", "Dinsdag", "Woensdag", "Donderdag", "Vrijdag", "Zaterdag", "Zondag"];
-  
-  const weekmenu = dagen.map((dagNaam) => {
-    const maaltijden = genereerMaaltijden();
-    
-    // Bereken totaal per dag
-    const dagTotaal = maaltijden.reduce((acc, maaltijd) => {
-      const maaltijdTotaal = maaltijd.ingrediënten.reduce(
-        (sum, ing) => ({
-          kcal: sum.kcal + ing.kcal,
-          eiwit: sum.eiwit + ing.eiwit,
-          koolhydraten: sum.koolhydraten + ing.koolhydraten,
-          vetten: sum.vetten + ing.vetten,
-        }),
-        { kcal: 0, eiwit: 0, koolhydraten: 0, vetten: 0 }
-      );
-      return {
-        kcal: acc.kcal + maaltijdTotaal.kcal,
-        eiwit: acc.eiwit + maaltijdTotaal.eiwit,
-        koolhydraten: acc.koolhydraten + maaltijdTotaal.koolhydraten,
-        vetten: acc.vetten + maaltijdTotaal.vetten,
-      };
-    }, { kcal: 0, eiwit: 0, koolhydraten: 0, vetten: 0 });
-
-    // Bereken percentages van doel
-    const eiwitPercentage = Math.round((dagTotaal.eiwit / eiwit) * 100);
-    const koolhydratenPercentage = Math.round((dagTotaal.koolhydraten / koolhydraten) * 100);
-    const vettenPercentage = Math.round((dagTotaal.vetten / vetten) * 100);
-    const kcalPercentage = Math.round((dagTotaal.kcal / doelKcal) * 100);
-
-    // Bereken wat er nog nodig is
-    const nogNodig = {
-      eiwit: Math.max(0, eiwit - dagTotaal.eiwit),
-      koolhydraten: Math.max(0, koolhydraten - dagTotaal.koolhydraten),
-      vetten: Math.max(0, vetten - dagTotaal.vetten),
-      kcal: Math.max(0, doelKcal - dagTotaal.kcal),
-    };
-
-    return {
-      dag: dagNaam,
-      maaltijden: maaltijden.map((m) => ({
-        ...m,
-        totaleKcal: m.ingrediënten.reduce((sum, ing) => sum + ing.kcal, 0),
-        eiwit: m.ingrediënten.reduce((sum, ing) => sum + ing.eiwit, 0),
-        koolhydraten: m.ingrediënten.reduce((sum, ing) => sum + ing.koolhydraten, 0),
-        vetten: m.ingrediënten.reduce((sum, ing) => sum + ing.vetten, 0),
-      })),
-      dagTotaal,
-      percentages: {
-        eiwit: eiwitPercentage,
-        koolhydraten: koolhydratenPercentage,
-        vetten: vettenPercentage,
-        kcal: kcalPercentage,
-      },
-      nogNodig,
-    };
-  });
-
-  // State voor actieve tab
-  const [actieveDag, setActieveDag] = useState(dagen[0]);
-  const geselecteerdeDag = weekmenu.find((d) => d.dag === actieveDag) || weekmenu[0];
-
-  // State voor modal
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalTab, setModalTab] = useState<"maaltijd" | "ingrediënten" | "recepten">("maaltijd");
-  
-  // State voor AI Generator modal
-  const [isAIGeneratorOpen, setIsAIGeneratorOpen] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const defaultAiOptions = {
-    aantalMaaltijden: "3",
-    soortMaaltijden: ["Gebalanceerd"] as string[],
-    vlees: [] as string[],
-    groenten: [] as string[],
-  };
-  const [aiOptions, setAiOptions] = useState(defaultAiOptions);
-  
-  // State voor nieuwe maaltijd
-  const [nieuweMaaltijd, setNieuweMaaltijd] = useState({
-    naam: "",
-    tijd: "",
-    type: "Ontbijt" as "Ontbijt" | "Lunch" | "Diner" | "Snacks",
-  });
-
-  // State voor nieuwe ingrediënt
-  const [nieuwIngrediënt, setNieuwIngrediënt] = useState({
-    naam: "",
-    portie: "",
-    kcal: "",
-    eiwit: "",
-    koolhydraten: "",
-    vetten: "",
-  });
-
-  // State voor ingrediënten en recepten
-  const [ingrediëntenDatabase, setIngrediëntenDatabase] = useState<any[]>([]);
-  const [recepten, setRecepten] = useState<any[]>([]);
-  const [isLoadingData, setIsLoadingData] = useState(true);
-
-  // Load ingredients and recipes from API
   useEffect(() => {
     async function loadData() {
       try {
@@ -235,7 +328,6 @@ function SchemaDetailContent({ schemaId }: { schemaId: string }) {
 
         if (ingredientsRes.ok) {
           const ingredients = await ingredientsRes.json();
-          // Transform to match expected format
           setIngrediëntenDatabase(
             ingredients.map((ing: any) => ({
               naam: ing.name,
@@ -260,6 +352,33 @@ function SchemaDetailContent({ schemaId }: { schemaId: string }) {
     loadData();
   }, []);
 
+  const removeIngredient = (dagNaam: string, maaltijdId: string, ingredientIndex: number) => {
+    setWeekmenu((prev) =>
+      prev.map((dag) => {
+        if (dag.dag !== dagNaam) return dag;
+        const targets = schema
+          ? {
+              eiwit: schema.eiwit,
+              koolhydraten: schema.koolhydraten,
+              vetten: schema.vetten,
+              doelKcal: schema.calorieën,
+            }
+          : { eiwit: 1, koolhydraten: 1, vetten: 1, doelKcal: 1 };
+
+        const maaltijden = dag.maaltijden.map((maaltijd) => {
+          if (maaltijd.id !== maaltijdId) return maaltijd;
+          const removed = maaltijd.ingrediënten[ingredientIndex];
+          if (!removed) return maaltijd;
+          const ingrediënten = maaltijd.ingrediënten.filter((_, i) => i !== ingredientIndex);
+          const bereidingswijze = cleanBereidingswijze(maaltijd.bereidingswijze || "", removed.naam);
+          return withMealTotals({ ...maaltijd, ingrediënten, bereidingswijze });
+        });
+
+        return buildDagMenu(dag.dag, maaltijden, targets);
+      })
+    );
+  };
+
   // Fallback ingrediënten database (per 100g) - wordt gebruikt tot data geladen is
   const fallbackIngrediëntenDatabase = [
     // Vlees & Vis
@@ -270,6 +389,7 @@ function SchemaDetailContent({ schemaId }: { schemaId: string }) {
     { naam: "Varkenshaas", kcal: 143, eiwit: 22, koolhydraten: 0, vetten: 6 },
     { naam: "Varkensvlees (mager)", kcal: 242, eiwit: 27, koolhydraten: 0, vetten: 14 },
     { naam: "Zalm", kcal: 208, eiwit: 20, koolhydraten: 0, vetten: 13 },
+    { naam: "Makreel", kcal: 205, eiwit: 19, koolhydraten: 0, vetten: 14 },
     { naam: "Tonijn (vers)", kcal: 144, eiwit: 30, koolhydraten: 0, vetten: 1 },
     { naam: "Tonijn (in blik)", kcal: 184, eiwit: 30, koolhydraten: 0, vetten: 6 },
     { naam: "Kabeljauw", kcal: 82, eiwit: 18, koolhydraten: 0, vetten: 0.7 },
@@ -390,16 +510,71 @@ function SchemaDetailContent({ schemaId }: { schemaId: string }) {
     { naam: "Pompoenpitten", kcal: 559, eiwit: 30, koolhydraten: 10, vetten: 49 },
   ];
 
-  const [ingrediëntZoekterm, setIngrediëntZoekterm] = useState("");
   const activeIngrediëntenDatabase = ingrediëntenDatabase.length > 0 ? ingrediëntenDatabase : fallbackIngrediëntenDatabase;
   const gefilterdeIngrediënten = activeIngrediëntenDatabase.filter((ing) =>
     ing.naam.toLowerCase().includes(ingrediëntZoekterm.toLowerCase())
   );
-
-  const [receptZoekterm, setReceptZoekterm] = useState("");
   const gefilterdeRecepten = recepten.filter((r) =>
     r.naam.toLowerCase().includes(receptZoekterm.toLowerCase())
   );
+
+  if (isLoading) {
+    return (
+      <div className="page-admin">
+        <div className="page-header">
+          <h1>Laden...</h1>
+        </div>
+      </div>
+    );
+  }
+
+  if (!schema) {
+    return (
+      <div className="page-admin">
+        <div className="page-header">
+          <h1>Voedingsplan niet gevonden</h1>
+          <Link href="/voeding" className="btn btn--secondary">
+            <ArrowLeft size={16} />
+            Terug naar Voedingsplannen
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Bereken percentages
+  const eiwit = schema.eiwit;
+  const koolhydraten = schema.koolhydraten;
+  const vetten = schema.vetten;
+  const doelKcal = schema.calorieën;
+  const eiwitKcal = eiwit * 4;
+  const koolhydratenKcal = koolhydraten * 4;
+  const vettenKcal = vetten * 9;
+  const eiwitPercentage = Math.round((eiwitKcal / doelKcal) * 100);
+  const koolhydratenPercentage = Math.round((koolhydratenKcal / doelKcal) * 100);
+  const vettenPercentage = Math.round((vettenKcal / doelKcal) * 100);
+
+  // Bepaal doel op basis van type
+  const typeToDoelMap: Record<string, string> = {
+    "Gewichtsverlies": "afvallen",
+    "Spieropbouw": "aankomen",
+    "Bulk": "aankomen",
+    "Onderhoud": "onderhoud",
+    "Revalidatie": "onderhoud",
+  };
+  const doel = typeToDoelMap[schema.type] || "onderhoud";
+  const dagen = [...DAGEN];
+  const geselecteerdeDag = weekmenu.find((d) => d.dag === actieveDag) || weekmenu[0];
+
+  if (!geselecteerdeDag) {
+    return (
+      <div className="page-admin">
+        <div className="page-header">
+          <h1>Laden...</h1>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="page-admin">
@@ -700,17 +875,34 @@ function SchemaDetailContent({ schemaId }: { schemaId: string }) {
                           <th>Eiwit (g)</th>
                           <th>Koolhydraten (g)</th>
                           <th>Vetten (g)</th>
+                          <th style={{ width: "48px" }}></th>
                         </tr>
                       </thead>
                       <tbody>
                         {maaltijd.ingrediënten.map((ingrediënt, idx) => (
-                          <tr key={idx}>
+                          <tr key={`${maaltijd.id}-${ingrediënt.naam}-${idx}`}>
                             <td><strong>{ingrediënt.naam}</strong></td>
                             <td>{ingrediënt.portie}</td>
                             <td>{ingrediënt.kcal}</td>
                             <td>{ingrediënt.eiwit}</td>
                             <td>{ingrediënt.koolhydraten}</td>
                             <td>{ingrediënt.vetten}</td>
+                            <td>
+                              <button
+                                type="button"
+                                className="btn btn--secondary"
+                                title={`${ingrediënt.naam} uitsluiten`}
+                                aria-label={`${ingrediënt.naam} uitsluiten`}
+                                onClick={() => removeIngredient(geselecteerdeDag.dag, maaltijd.id, idx)}
+                                style={{
+                                  padding: "0.25rem 0.4rem",
+                                  minWidth: "auto",
+                                  lineHeight: 1,
+                                }}
+                              >
+                                <X size={14} />
+                              </button>
+                            </td>
                           </tr>
                         ))}
                         {/* Totaal rij */}
@@ -721,10 +913,30 @@ function SchemaDetailContent({ schemaId }: { schemaId: string }) {
                           <td>{maaltijd.eiwit}</td>
                           <td>{maaltijd.koolhydraten}</td>
                           <td>{maaltijd.vetten}</td>
+                          <td></td>
                         </tr>
                       </tbody>
                     </table>
                   </div>
+
+                  {maaltijd.bereidingswijze?.trim() && (
+                    <div
+                      style={{
+                        marginTop: "0.75rem",
+                        padding: "0.75rem 1rem",
+                        background: "var(--client-surface)",
+                        borderRadius: "0.5rem",
+                        border: "1px solid var(--client-border)",
+                      }}
+                    >
+                      <div style={{ fontSize: "0.8rem", fontWeight: 600, color: "#64748b", marginBottom: "0.35rem" }}>
+                        Bereidingswijze
+                      </div>
+                      <p style={{ margin: 0, fontSize: "0.9rem", color: "#334155", lineHeight: 1.5 }}>
+                        {maaltijd.bereidingswijze}
+                      </p>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -1591,15 +1803,7 @@ function SchemaDetailContent({ schemaId }: { schemaId: string }) {
                     }}
                   >
                     {[
-                      "Kip",
-                      "Rundvlees",
-                      "Varkensvlees",
-                      "Vis",
-                      "Zalm",
-                      "Tonijn",
-                      "Eieren",
-                      "Tofu",
-                      "Tempeh",
+                      ...AI_VLEES_OPTIES,
                     ].map((vlees) => (
                       <label
                         key={vlees}
@@ -1665,15 +1869,7 @@ function SchemaDetailContent({ schemaId }: { schemaId: string }) {
                     }}
                   >
                     {[
-                      "Broccoli",
-                      "Spinazie",
-                      "Wortelen",
-                      "Paprika",
-                      "Courgette",
-                      "Tomaten",
-                      "Komkommer",
-                      "Bloemkool",
-                      "Boerenkool",
+                      ...AI_GROENTEN_OPTIES,
                     ].map((groente) => (
                       <label
                         key={groente}
@@ -1734,6 +1930,21 @@ function SchemaDetailContent({ schemaId }: { schemaId: string }) {
                           aiOptions.soortMaaltijden.length > 0
                             ? aiOptions.soortMaaltijden
                             : ["Gebalanceerd"];
+
+                        // Unchecked opties = exclusies (per categorie waarin iets is aangevinkt)
+                        const exclusions = buildAiExclusions(aiOptions.vlees, aiOptions.groenten);
+
+                        setWeekmenu(
+                          buildWeekmenu(
+                            {
+                              eiwit,
+                              koolhydraten,
+                              vetten,
+                              doelKcal,
+                            },
+                            exclusions
+                          )
+                        );
                         
                         const aiPlanParams = new URLSearchParams({
                           klantNaam: schema.klantNaam,

@@ -16,6 +16,7 @@ const ingrediëntenDatabase = [
   { naam: "Rundvlees (mager)", kcal: 250, eiwit: 26, koolhydraten: 0, vetten: 15 },
   { naam: "Varkenshaas", kcal: 143, eiwit: 22, koolhydraten: 0, vetten: 6 },
   { naam: "Zalm", kcal: 208, eiwit: 20, koolhydraten: 0, vetten: 13 },
+  { naam: "Makreel", kcal: 205, eiwit: 19, koolhydraten: 0, vetten: 14 },
   { naam: "Tonijn (vers)", kcal: 144, eiwit: 30, koolhydraten: 0, vetten: 1 },
   { naam: "Kabeljauw", kcal: 82, eiwit: 18, koolhydraten: 0, vetten: 0.7 },
   { naam: "Garnalen", kcal: 99, eiwit: 24, koolhydraten: 0, vetten: 0.3 },
@@ -93,12 +94,21 @@ function genereerMaaltijden(
   const tijden = ["08:00", "12:30", "18:00", "10:00", "15:00", "20:00"];
 
   // Filter ingrediënten op basis van voorkeuren
+  const matchesVleesOptie = (ingredientName: string, optie: string) => {
+    const name = ingredientName.toLowerCase();
+    const o = optie.toLowerCase();
+    if (o === "vis") {
+      return ["zalm", "tonijn", "kabeljauw", "makreel", "garnalen"].some((vis) => name.includes(vis));
+    }
+    return name.includes(o);
+  };
+
   const beschikbaarVlees = vleesOpties.length > 0
     ? ingrediëntenDatabase.filter((ing) =>
-        vleesOpties.some((v) => ing.naam.toLowerCase().includes(v.toLowerCase()))
+        vleesOpties.some((v) => matchesVleesOptie(ing.naam, v))
       )
     : ingrediëntenDatabase.filter((ing) =>
-        ["kip", "rund", "varken", "zalm", "tonijn", "kabeljauw", "garnalen", "kalkoen", "ei", "tofu"].some((v) =>
+        ["kip", "rund", "varken", "zalm", "tonijn", "kabeljauw", "makreel", "garnalen", "kalkoen", "ei", "tofu"].some((v) =>
           ing.naam.toLowerCase().includes(v)
         )
       );
