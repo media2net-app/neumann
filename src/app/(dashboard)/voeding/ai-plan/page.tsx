@@ -1,9 +1,11 @@
 "use client";
 
-import { Suspense } from "react";
-import { useSearchParams, useParams } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { ArrowLeft, Sparkles, CheckCircle } from "lucide-react";
 import Link from "next/link";
+import { buildWeekmenu } from "@/lib/weekmenu";
+import { createNutritionPlan } from "../nieuw/actions";
 
 // Force dynamic rendering omdat we searchParams gebruiken
 export const dynamic = 'force-dynamic';
@@ -342,9 +344,12 @@ function genereerMaaltijden(
 }
 
 function AIPlanPageContent() {
-  const params = useParams();
+  const router = useRouter();
   const searchParams = useSearchParams();
-  const clientId = params.client as string;
+  const schemaId = searchParams.get("schemaId") || "";
+  const clientId = searchParams.get("clientId") || "";
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // Haal data uit URL parameters
   const klantNaam = searchParams.get("klantNaam") || "Nieuwe Klant";
@@ -357,6 +362,8 @@ function AIPlanPageContent() {
   const soortMaaltijden = searchParams.get("soortMaaltijden")?.split(",") || [];
   const vlees = searchParams.get("vlees")?.split(",").filter(Boolean) || [];
   const groenten = searchParams.get("groenten")?.split(",").filter(Boolean) || [];
+
+  const backHref = schemaId ? `/voeding/${schemaId}` : "/voeding";
 
   // Bereken percentages
   const eiwitKcal = eiwit * 4;
@@ -391,12 +398,65 @@ function AIPlanPageContent() {
     groenten
   );
 
+  const handleSavePlan = async () => {
+    setIsSaving(true);
+    setSaveError(null);
+    try {
+      const weekMenu = buildWeekmenu(
+        { eiwit, koolhydraten, vetten, doelKcal },
+        [],
+        aantalMaaltijden
+      );
+
+      if (schemaId) {
+        const response = await fetch(`/api/voeding/${schemaId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ weekMenu }),
+        });
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          throw new Error(data.error || "Opslaan mislukt");
+        }
+        router.push(`/voeding/${schemaId}`);
+        return;
+      }
+
+      if (!clientId) {
+        setSaveError("Geen klant gekoppeld. Maak het plan via Nieuw Voedingsplan.");
+        return;
+      }
+
+      const result = await createNutritionPlan({
+        clientId,
+        name: `${type} Schema - ${doelKcal} kcal`,
+        type,
+        kcal: doelKcal,
+        protein: eiwit,
+        carbs: koolhydraten,
+        fats: vetten,
+        mealCount: aantalMaaltijden,
+      });
+
+      if (!result.success || !result.plan) {
+        throw new Error(result.error || "Opslaan mislukt");
+      }
+
+      router.push(`/voeding/${result.plan.id}`);
+    } catch (error) {
+      console.error(error);
+      setSaveError(error instanceof Error ? error.message : "Opslaan mislukt");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <div className="page-admin">
       <div className="page-header">
         <div>
           <Link
-            href={`/clients/${clientId}/voeding`}
+            href={backHref}
             className="dashboard-card__link"
             style={{
               display: "inline-flex",
@@ -711,15 +771,19 @@ function AIPlanPageContent() {
 
       {/* Actie Buttons */}
       <div className="page-section">
+        {saveError && (
+          <p style={{ color: "#dc2626", marginBottom: "0.75rem" }}>{saveError}</p>
+        )}
         <div style={{ display: "flex", gap: "1rem" }}>
-          <button className="btn btn--primary">
+          <button
+            className="btn btn--primary"
+            onClick={handleSavePlan}
+            disabled={isSaving}
+          >
             <Sparkles size={16} />
-            Plan Opslaan
+            {isSaving ? "Opslaan..." : "Plan Opslaan"}
           </button>
-          <button className="btn btn--secondary">
-            Plan Aanpassen
-          </button>
-          <Link href={`/clients/${clientId}/voeding`} className="btn btn--secondary">
+          <Link href={backHref} className="btn btn--secondary">
             Annuleren
           </Link>
         </div>

@@ -467,14 +467,22 @@ export function applyExclusionsToMaaltijden(maaltijden: Maaltijd[], exclusions: 
   });
 }
 
-export function buildWeekmenu(targets: MacroTargets, exclusions: string[] = []): DagMenu[] {
-  return DAGEN.map((dagNaam, dayIndex) =>
-    buildDagMenu(
-      dagNaam,
-      applyExclusionsToMaaltijden(buildDefaultMaaltijden(dayIndex), exclusions),
-      targets
-    )
-  );
+export function buildWeekmenu(
+  targets: MacroTargets,
+  exclusions: string[] = [],
+  mealCount = 5
+): DagMenu[] {
+  const count = Math.min(6, Math.max(3, mealCount || 5));
+  return DAGEN.map((dagNaam, dayIndex) => {
+    let meals = applyExclusionsToMaaltijden(buildDefaultMaaltijden(dayIndex), exclusions);
+    // Default is 5 meals: ontbijt, snack ochtend, lunch, snack middag, diner
+    if (count <= 3) {
+      meals = [meals[0], meals[2], meals[4]];
+    } else if (count === 4) {
+      meals = [meals[0], meals[2], meals[3], meals[4]];
+    }
+    return buildDagMenu(dagNaam, meals, targets);
+  });
 }
 
 /** Detect identical-day menus that were incorrectly auto-saved earlier */

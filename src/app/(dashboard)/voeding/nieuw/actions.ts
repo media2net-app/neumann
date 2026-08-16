@@ -24,8 +24,23 @@ export async function createNutritionPlan(formData: {
   carbs: number;
   fats: number;
   notes?: string;
+  mealCount?: number;
 }) {
   try {
+    const { encodePlanNotes } = await import("@/lib/plan-notes");
+    const { buildWeekmenu } = await import("@/lib/weekmenu");
+
+    const weekMenu = buildWeekmenu(
+      {
+        eiwit: formData.protein,
+        koolhydraten: formData.carbs,
+        vetten: formData.fats,
+        doelKcal: formData.kcal,
+      },
+      [],
+      formData.mealCount || 5
+    );
+
     const plan = await prisma.nutritionPlan.create({
       data: {
         clientId: formData.clientId,
@@ -36,7 +51,11 @@ export async function createNutritionPlan(formData: {
         carbs: formData.carbs,
         fats: formData.fats,
         status: "Actief",
-        notes: formData.notes,
+        notes: encodePlanNotes({
+          existing: { v: 1, notes: formData.notes || "", weekMenu: null },
+          notes: formData.notes || "",
+          weekMenu,
+        }),
       },
     });
 

@@ -110,28 +110,38 @@ function SchemaDetailContent({ schemaId }: { schemaId: string }) {
   const [receptZoekterm, setReceptZoekterm] = useState("");
 
   const saveWeekMenu = useCallback(
-    async (menu: DagMenu[], immediate = false) => {
+    async (menu: DagMenu[], immediate = false): Promise<boolean> => {
       const doSave = async () => {
         try {
-          await fetch(`/api/voeding/${schemaId}`, {
+          const response = await fetch(`/api/voeding/${schemaId}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ weekMenu: menu }),
           });
+          if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            throw new Error(data.error || `Opslaan mislukt (${response.status})`);
+          }
           setHadSavedWeekMenu(true);
+          return true;
         } catch (error) {
           console.error("Error saving weekmenu:", error);
+          alert(error instanceof Error ? error.message : "Opslaan van weekmenu mislukt");
+          return false;
         }
       };
 
       if (immediate) {
         if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-        await doSave();
-        return;
+        return doSave();
       }
 
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-      saveTimerRef.current = setTimeout(doSave, 400);
+      return new Promise((resolve) => {
+        saveTimerRef.current = setTimeout(async () => {
+          resolve(await doSave());
+        }, 400);
+      });
     },
     [schemaId]
   );
@@ -1862,45 +1872,32 @@ function SchemaDetailContent({ schemaId }: { schemaId: string }) {
                       setIsGenerating(true);
                       
                       // Simuleer AI generatie (2 seconden)
-                      setTimeout(() => {
-                        const aantalMaaltijden = parseInt(aiOptions.aantalMaaltijden);
-                        const geselecteerdeSoorten =
-                          aiOptions.soortMaaltijden.length > 0
-                            ? aiOptions.soortMaaltijden
-                            : ["Gebalanceerd"];
+                      setTimeout(async () => {
+                        const aantalMaaltijden = parseInt(aiOptions.aantalMaaltijden) || 5;
 
                         // Unchecked opties = exclusies (per categorie waarin iets is aangevinkt)
                         const exclusions = buildAiExclusions(aiOptions.vlees, aiOptions.groenten);
 
                         const generated = buildWeekmenu(
-                            {
-                              eiwit,
-                              koolhydraten,
-                              vetten,
-                              doelKcal,
-                            },
-                            exclusions
-                          );
+                          {
+                            eiwit,
+                            koolhydraten,
+                            vetten,
+                            doelKcal,
+                          },
+                          exclusions,
+                          aantalMaaltijden
+                        );
                         setWeekmenu(generated);
-                        void saveWeekMenu(generated, true);
-                        
-                        const aiPlanParams = new URLSearchParams({
-                          klantNaam: schema.klantNaam,
-                          doelKcal: doelKcal.toString(),
-                          eiwit: eiwit.toString(),
-                          koolhydraten: koolhydraten.toString(),
-                          vetten: vetten.toString(),
-                          doel: doel,
-                          aantalMaaltijden: aantalMaaltijden.toString(),
-                          soortMaaltijden: geselecteerdeSoorten.join(","),
-                          vlees: aiOptions.vlees.join(","),
-                          groenten: aiOptions.groenten.join(","),
-                        });
-                        
+                        const saved = await saveWeekMenu(generated, true);
+
                         setIsGenerating(false);
                         setIsAIGeneratorOpen(false);
                         setAiOptions(defaultAiOptions);
-                        router.push(`/voeding/ai-plan?${aiPlanParams.toString()}`);
+
+                        if (saved) {
+                          alert("Voedingsplan opgeslagen. Je kunt de klantlink kopiëren.");
+                        }
                       }, 2000);
                     }}
                     disabled={isGenerating}
