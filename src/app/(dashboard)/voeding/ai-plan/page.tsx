@@ -404,8 +404,11 @@ function AIPlanPageContent() {
     try {
       const weekMenu = buildWeekmenu(
         { eiwit, koolhydraten, vetten, doelKcal },
-        [],
-        aantalMaaltijden
+        {
+          preferredProteins: vlees,
+          styles: soortMaaltijden,
+          mealCount: aantalMaaltijden,
+        }
       );
 
       if (schemaId) {

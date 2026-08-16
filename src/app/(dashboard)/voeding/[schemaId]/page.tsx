@@ -1877,6 +1877,10 @@ function SchemaDetailContent({ schemaId }: { schemaId: string }) {
 
                         // Unchecked opties = exclusies (per categorie waarin iets is aangevinkt)
                         const exclusions = buildAiExclusions(aiOptions.vlees, aiOptions.groenten);
+                        const styles =
+                          aiOptions.soortMaaltijden.length > 0
+                            ? aiOptions.soortMaaltijden
+                            : ["Gebalanceerd"];
 
                         const generated = buildWeekmenu(
                           {
@@ -1885,8 +1889,12 @@ function SchemaDetailContent({ schemaId }: { schemaId: string }) {
                             vetten,
                             doelKcal,
                           },
-                          exclusions,
-                          aantalMaaltijden
+                          {
+                            exclusions,
+                            preferredProteins: aiOptions.vlees,
+                            styles,
+                            mealCount: aantalMaaltijden,
+                          }
                         );
                         setWeekmenu(generated);
                         const saved = await saveWeekMenu(generated, true);
