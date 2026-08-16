@@ -90,9 +90,6 @@ function genereerMaaltijden(
   const koolhydratenPerMaaltijd = doelKoolhydraten / aantalMaaltijden;
   const vettenPerMaaltijd = doelVetten / aantalMaaltijden;
 
-  const maaltijdNamen = ["Ontbijt", "Lunch", "Diner", "Snack 1", "Snack 2", "Snack 3"];
-  const tijden = ["08:00", "12:30", "18:00", "10:00", "15:00", "20:00"];
-
   // Filter ingrediënten op basis van voorkeuren
   const matchesVleesOptie = (ingredientName: string, optie: string) => {
     const name = ingredientName.toLowerCase();
@@ -135,6 +132,10 @@ function genereerMaaltijden(
     )
   );
 
+  const beschikbaarOntbijtEiwit = ingrediëntenDatabase.filter((ing) =>
+    ["kwark", "yoghurt", "skyr", "havermout", "ei"].some((v) => ing.naam.toLowerCase().includes(v))
+  );
+
   const isEiwitrijk = soortMaaltijden.includes("Eiwitrijk");
   const isKoolhydraatrijk = soortMaaltijden.includes("Koolhydraatrijk");
   const isVetrijk = soortMaaltijden.includes("Vetrijk");
@@ -143,50 +144,62 @@ function genereerMaaltijden(
   const isKeto = soortMaaltijden.includes("Keto");
   const isLowCarb = soortMaaltijden.includes("Low-carb");
 
+  // Vaste volgorde: Ontbijt → snacks rond lunch/diner, nooit warm vlees als ontbijt
+  const namenVoorAantal = (n: number) => {
+    if (n <= 3) return ["Ontbijt", "Lunch", "Diner"].slice(0, n);
+    if (n === 4) return ["Ontbijt", "Lunch", "Tussendoortje", "Diner"];
+    if (n === 5) return ["Ontbijt", "Tussendoortje ochtend", "Lunch", "Tussendoortje middag", "Diner"];
+    return ["Ontbijt", "Tussendoortje ochtend", "Lunch", "Tussendoortje middag", "Diner", "Snack avond"].slice(0, n);
+  };
+  const tijdenVoorAantal = (n: number) => {
+    if (n <= 3) return ["08:00", "12:30", "18:00"].slice(0, n);
+    if (n === 4) return ["08:00", "12:30", "15:00", "18:00"];
+    if (n === 5) return ["08:00", "10:00", "12:30", "15:00", "18:00"];
+    return ["08:00", "10:00", "12:30", "15:00", "18:00", "20:00"].slice(0, n);
+  };
+  const maaltijdNamen = namenVoorAantal(aantalMaaltijden);
+  const tijden = tijdenVoorAantal(aantalMaaltijden);
+
   return Array.from({ length: aantalMaaltijden }).map((_, index) => {
     const maaltijdNaam = maaltijdNamen[index] || `Maaltijd ${index + 1}`;
-    const isOntbijt = index === 0;
-    const isLunch = index === 1;
-    const isDiner = index === 2;
-    const isSnack = index >= 3;
+    const isOntbijt = index === 0 || maaltijdNaam.toLowerCase().includes("ontbijt");
+    const isSnack = maaltijdNaam.toLowerCase().includes("tussendoortje") || maaltijdNaam.toLowerCase().includes("snack");
 
     let ingrediënten: Array<{ naam: string; portie: string; kcal: number; eiwit: number; koolhydraten: number; vetten: number }> = [];
 
-    if (isSnack) {
-      // Snacks zijn kleiner en eenvoudiger
-      if (isEiwitrijk || isLowCarb || isKeto) {
-        const eiwitBron = isVegan || isVegetarisch
-          ? beschikbaarVlees.find((v) => v.naam.toLowerCase().includes("tofu")) || beschikbaarVlees.find((v) => v.naam.toLowerCase().includes("ei"))
-          : beschikbaarVlees[Math.floor(Math.random() * beschikbaarVlees.length)];
-        
-        if (eiwitBron) {
-          const portie = Math.round((kcalPerMaaltijd * 0.6) / (eiwitBron.kcal / 100));
-          ingrediënten.push({
-            naam: eiwitBron.naam,
-            portie: `${portie}g`,
-            kcal: Math.round((eiwitBron.kcal / 100) * portie),
-            eiwit: Math.round((eiwitBron.eiwit / 100) * portie * 10) / 10,
-            koolhydraten: Math.round((eiwitBron.koolhydraten / 100) * portie * 10) / 10,
-            vetten: Math.round((eiwitBron.vetten / 100) * portie * 10) / 10,
-          });
-        }
-        
-        if (!isKeto && beschikbaarFruit.length > 0) {
-          const fruit = beschikbaarFruit[Math.floor(Math.random() * beschikbaarFruit.length)];
-          const portie = Math.round((kcalPerMaaltijd * 0.4) / (fruit.kcal / 100));
-          ingrediënten.push({
-            naam: fruit.naam,
-            portie: `${portie}g`,
-            kcal: Math.round((fruit.kcal / 100) * portie),
-            eiwit: Math.round((fruit.eiwit / 100) * portie * 10) / 10,
-            koolhydraten: Math.round((fruit.koolhydraten / 100) * portie * 10) / 10,
-            vetten: Math.round((fruit.vetten / 100) * portie * 10) / 10,
-          });
-        }
-      } else {
-        // Gebalanceerde snack
-        const fruit = beschikbaarFruit[Math.floor(Math.random() * beschikbaarFruit.length)];
-        const portie = Math.round((kcalPerMaaltijd * 0.7) / (fruit.kcal / 100));
+    if (isOntbijt) {
+      // Koud ontbijt: kwark / yoghurt / skyr + havermout + fruit
+      const dairy =
+        beschikbaarOntbijtEiwit.find((v) => v.naam.toLowerCase().includes("kwark")) ||
+        beschikbaarOntbijtEiwit.find((v) => v.naam.toLowerCase().includes("yoghurt")) ||
+        beschikbaarOntbijtEiwit.find((v) => v.naam.toLowerCase().includes("skyr"));
+      const oats = beschikbaarKoolhydraten.find((k) => k.naam.toLowerCase().includes("havermout"));
+      const fruit = beschikbaarFruit[index % Math.max(beschikbaarFruit.length, 1)];
+
+      if (dairy) {
+        const portie = Math.round((kcalPerMaaltijd * 0.45) / (dairy.kcal / 100));
+        ingrediënten.push({
+          naam: dairy.naam,
+          portie: `${portie}g`,
+          kcal: Math.round((dairy.kcal / 100) * portie),
+          eiwit: Math.round((dairy.eiwit / 100) * portie * 10) / 10,
+          koolhydraten: Math.round((dairy.koolhydraten / 100) * portie * 10) / 10,
+          vetten: Math.round((dairy.vetten / 100) * portie * 10) / 10,
+        });
+      }
+      if (oats && !isKeto) {
+        const portie = Math.round((kcalPerMaaltijd * 0.35) / (oats.kcal / 100));
+        ingrediënten.push({
+          naam: oats.naam,
+          portie: `${portie}g`,
+          kcal: Math.round((oats.kcal / 100) * portie),
+          eiwit: Math.round((oats.eiwit / 100) * portie * 10) / 10,
+          koolhydraten: Math.round((oats.koolhydraten / 100) * portie * 10) / 10,
+          vetten: Math.round((oats.vetten / 100) * portie * 10) / 10,
+        });
+      }
+      if (fruit) {
+        const portie = Math.round((kcalPerMaaltijd * 0.2) / (fruit.kcal / 100));
         ingrediënten.push({
           naam: fruit.naam,
           portie: `${portie}g`,
@@ -195,28 +208,39 @@ function genereerMaaltijden(
           koolhydraten: Math.round((fruit.koolhydraten / 100) * portie * 10) / 10,
           vetten: Math.round((fruit.vetten / 100) * portie * 10) / 10,
         });
-        
-        if (beschikbaarVlees.length > 0 && !isVegan) {
-          const eiwitBron = isVegetarisch
-            ? beschikbaarVlees.find((v) => v.naam.toLowerCase().includes("ei") || v.naam.toLowerCase().includes("yoghurt"))
-            : beschikbaarVlees[Math.floor(Math.random() * beschikbaarVlees.length)];
-          
-          if (eiwitBron) {
-            const portie = Math.round((kcalPerMaaltijd * 0.3) / (eiwitBron.kcal / 100));
-            ingrediënten.push({
-              naam: eiwitBron.naam,
-              portie: `${portie}g`,
-              kcal: Math.round((eiwitBron.kcal / 100) * portie),
-              eiwit: Math.round((eiwitBron.eiwit / 100) * portie * 10) / 10,
-              koolhydraten: Math.round((eiwitBron.koolhydraten / 100) * portie * 10) / 10,
-              vetten: Math.round((eiwitBron.vetten / 100) * portie * 10) / 10,
-            });
-          }
-        }
+      }
+    } else if (isSnack) {
+      // Snacks: bij voorkeur kwark/yoghurt + fruit, geen warm vlees
+      const dairy =
+        beschikbaarOntbijtEiwit.find((v) => v.naam.toLowerCase().includes("kwark")) ||
+        beschikbaarOntbijtEiwit.find((v) => v.naam.toLowerCase().includes("yoghurt")) ||
+        beschikbaarOntbijtEiwit.find((v) => v.naam.toLowerCase().includes("skyr"));
+      const fruit = beschikbaarFruit[Math.floor(Math.random() * Math.max(beschikbaarFruit.length, 1))];
+
+      if (dairy) {
+        const portie = Math.round((kcalPerMaaltijd * 0.65) / (dairy.kcal / 100));
+        ingrediënten.push({
+          naam: dairy.naam,
+          portie: `${portie}g`,
+          kcal: Math.round((dairy.kcal / 100) * portie),
+          eiwit: Math.round((dairy.eiwit / 100) * portie * 10) / 10,
+          koolhydraten: Math.round((dairy.koolhydraten / 100) * portie * 10) / 10,
+          vetten: Math.round((dairy.vetten / 100) * portie * 10) / 10,
+        });
+      }
+      if (fruit && !isKeto) {
+        const portie = Math.round((kcalPerMaaltijd * 0.35) / (fruit.kcal / 100));
+        ingrediënten.push({
+          naam: fruit.naam,
+          portie: `${portie}g`,
+          kcal: Math.round((fruit.kcal / 100) * portie),
+          eiwit: Math.round((fruit.eiwit / 100) * portie * 10) / 10,
+          koolhydraten: Math.round((fruit.koolhydraten / 100) * portie * 10) / 10,
+          vetten: Math.round((fruit.vetten / 100) * portie * 10) / 10,
+        });
       }
     } else {
-      // Hoofdmaaltijden
-      // Eiwitbron (30-40% van kcal)
+      // Lunch / diner: warme hoofdmaaltijd
       if (beschikbaarVlees.length > 0) {
         let eiwitBron;
         if (isVegan) {
@@ -241,10 +265,11 @@ function genereerMaaltijden(
         }
       }
 
-      // Koolhydraten (30-50% van kcal, afhankelijk van voorkeur)
       if (!isKeto && !isLowCarb && beschikbaarKoolhydraten.length > 0) {
-        const koolhydraatBron = beschikbaarKoolhydraten[Math.floor(Math.random() * beschikbaarKoolhydraten.length)];
-        const koolhydraatPercentage = isKoolhydraatrijk ? 0.5 : isOntbijt ? 0.4 : 0.35;
+        const zonderHavermout = beschikbaarKoolhydraten.filter((k) => !k.naam.toLowerCase().includes("havermout"));
+        const pool = zonderHavermout.length > 0 ? zonderHavermout : beschikbaarKoolhydraten;
+        const koolhydraatBron = pool[Math.floor(Math.random() * pool.length)];
+        const koolhydraatPercentage = isKoolhydraatrijk ? 0.5 : 0.35;
         const portie = Math.round((kcalPerMaaltijd * koolhydraatPercentage) / (koolhydraatBron.kcal / 100));
         ingrediënten.push({
           naam: koolhydraatBron.naam,
@@ -256,7 +281,6 @@ function genereerMaaltijden(
         });
       }
 
-      // Groenten (10-15% van kcal)
       if (beschikbaarGroenten.length > 0) {
         const groente = beschikbaarGroenten[Math.floor(Math.random() * beschikbaarGroenten.length)];
         const portie = Math.round((kcalPerMaaltijd * 0.12) / (groente.kcal / 100));
@@ -270,7 +294,6 @@ function genereerMaaltijden(
         });
       }
 
-      // Vetten (indien nodig, vooral voor keto/vetrijk)
       if ((isVetrijk || isKeto) && ingrediënten.length > 0) {
         const vetBron = ingrediëntenDatabase.find((ing) => ing.naam.toLowerCase().includes("olijfolie")) ||
                         ingrediëntenDatabase.find((ing) => ing.naam.toLowerCase().includes("avocado"));

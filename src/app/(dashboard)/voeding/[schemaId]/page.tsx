@@ -170,17 +170,18 @@ function SchemaDetailContent({ schemaId }: { schemaId: string }) {
         };
 
         const menu: DagMenu[] =
-          Array.isArray(data.weekMenu) && data.weekMenu.length > 0
+          Array.isArray(data.weekMenu) && data.weekMenu.length > 0 && !data.weekMenuNeedsHeal
             ? data.weekMenu
             : buildWeekmenu(targets);
 
         setWeekmenu(menu);
-        setHadSavedWeekMenu(Boolean(data.weekMenuPersisted));
+        setHadSavedWeekMenu(Boolean(data.weekMenuPersisted) && !data.weekMenuNeedsHeal);
 
-        if (!data.weekMenuPersisted && !autoSavedRef.current) {
+        // Save when missing OR when healing a broken identical-day menu
+        if ((!data.weekMenuPersisted || data.weekMenuNeedsHeal) && !autoSavedRef.current) {
           autoSavedRef.current = true;
           void saveWeekMenu(menu, true);
-        } else if (data.weekMenuPersisted) {
+        } else if (data.weekMenuPersisted && !data.weekMenuNeedsHeal) {
           autoSavedRef.current = true;
         }
       } catch (error) {

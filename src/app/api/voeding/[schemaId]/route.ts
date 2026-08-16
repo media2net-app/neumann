@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { decodePlanNotes, encodePlanNotes } from "@/lib/plan-notes";
-import { buildWeekmenu, type DagMenu } from "@/lib/weekmenu";
+import { buildWeekmenu, isUniformWeekMenu, type DagMenu } from "@/lib/weekmenu";
 
 function clientLinkPath(planId: string) {
   return `/my-plan/${planId}`;
@@ -31,13 +31,14 @@ function serializePlan(
     doelKcal: plan.kcal,
   };
 
-  const weekMenuPersisted =
-    options?.weekMenuPersisted ?? Boolean(decoded.weekMenu && decoded.weekMenu.length > 0);
+  const savedMenu = options?.weekMenu ?? decoded.weekMenu;
+  // Auto-heal identical-day menus that were incorrectly saved earlier
+  const needsHeal = !savedMenu || savedMenu.length === 0 || isUniformWeekMenu(savedMenu);
+  const weekMenu = needsHeal ? buildWeekmenu(targets) : savedMenu;
 
-  const weekMenu =
-    options?.weekMenu ??
-    decoded.weekMenu ??
-    buildWeekmenu(targets);
+  const weekMenuPersisted =
+    options?.weekMenuPersisted ??
+    (Boolean(decoded.weekMenu && decoded.weekMenu.length > 0) && !needsHeal);
 
   return {
     id: plan.id,
@@ -54,6 +55,7 @@ function serializePlan(
     notes: options?.notesText ?? decoded.notes,
     weekMenu,
     weekMenuPersisted,
+    weekMenuNeedsHeal: needsHeal && Boolean(decoded.weekMenu?.length),
     clientLink: clientLinkPath(plan.id),
   };
 }
@@ -82,7 +84,24 @@ export async function GET(
       return NextResponse.json({ error: "Voedingsplan niet gevonden" }, { status: 404 });
     }
 
-    return NextResponse.json(serializePlan(plan));
+    const serialized = serializePlan(plan);
+
+    // Persist healed menus so clients keep variety after first load
+    if (serialized.weekMenuNeedsHeal) {
+      const existing = decodePlanNotes(plan.notes);
+      const encoded = encodePlanNotes({
+        existing,
+        weekMenu: serialized.weekMenu,
+      });
+      await prisma.nutritionPlan.update({
+        where: { id: schemaId },
+        data: { notes: encoded },
+      });
+      serialized.weekMenuPersisted = true;
+      serialized.weekMenuNeedsHeal = false;
+    }
+
+    return NextResponse.json(serialized);
   } catch (error) {
     console.error("Error fetching nutrition plan:", error);
     return NextResponse.json({ error: "Failed to fetch nutrition plan" }, { status: 500 });
