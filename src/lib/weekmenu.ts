@@ -1,3 +1,10 @@
+import {
+  ONTBIJT_OPTIES,
+  LUNCH_OPTIES,
+  DINER_OPTIES,
+  SNACK_OPTIES,
+} from "./meal-library";
+
 export const DAGEN = [
   "Maandag",
   "Dinsdag",
@@ -136,7 +143,7 @@ function round1(n: number) {
   return Math.round(n * 10) / 10;
 }
 
-type MealTemplate = Omit<Maaltijd, "totaleKcal" | "eiwit" | "koolhydraten" | "vetten" | "id">;
+export type MealTemplate = Omit<Maaltijd, "totaleKcal" | "eiwit" | "koolhydraten" | "vetten" | "id">;
 
 /** Per 100g referentie voor swaps / schalen */
 type ProteinRef = {
@@ -387,403 +394,37 @@ function estimateGrams(ing: Ingredient, ref: ProteinRef | null): number {
   return 120;
 }
 
-const ONTBIJT_OPTIES: MealTemplate[] = [
-  {
-    naam: "Ontbijt",
-    tijd: "08:00",
-    bereidingswijze:
-      "Meng de havermout met yoghurt of water tot een papje. Top met banaan en blauwe bessen. Geen warm vlees bij het ontbijt.",
-    ingrediënten: [
-      { naam: "Havermout", portie: "50g", kcal: 180, eiwit: 6, koolhydraten: 30, vetten: 3 },
-      { naam: "Griekse yoghurt (mager)", portie: "150g", kcal: 89, eiwit: 15, koolhydraten: 5, vetten: 0.6 },
-      { naam: "Banaan", portie: "1 middelgroot", kcal: 105, eiwit: 1, koolhydraten: 27, vetten: 0 },
-      { naam: "Blauwe bessen", portie: "50g", kcal: 28, eiwit: 0, koolhydraten: 7, vetten: 0 },
-    ],
-  },
-  {
-    naam: "Ontbijt",
-    tijd: "08:00",
-    bereidingswijze:
-      "Schep de kwark in een kom. Roer er havermout door en top met aardbeien en een beetje honing naar smaak.",
-    ingrediënten: [
-      { naam: "Kwark (mager)", portie: "200g", kcal: 114, eiwit: 20, koolhydraten: 7, vetten: 0.4 },
-      { naam: "Havermout", portie: "40g", kcal: 144, eiwit: 5, koolhydraten: 24, vetten: 2 },
-      { naam: "Aardbeien", portie: "100g", kcal: 32, eiwit: 1, koolhydraten: 8, vetten: 0 },
-    ],
-  },
-  {
-    naam: "Ontbijt",
-    tijd: "08:00",
-    bereidingswijze:
-      "Serveer skyr of yoghurt koud met havermout en appel. Dit is een koud ontbijt, niet bakken.",
-    ingrediënten: [
-      { naam: "Skyr", portie: "200g", kcal: 118, eiwit: 22, koolhydraten: 8, vetten: 0.4 },
-      { naam: "Havermout", portie: "40g", kcal: 144, eiwit: 5, koolhydraten: 24, vetten: 2 },
-      { naam: "Appel", portie: "1 middelgroot", kcal: 95, eiwit: 0, koolhydraten: 25, vetten: 0 },
-    ],
-  },
-  {
-    naam: "Ontbijt",
-    tijd: "08:00",
-    bereidingswijze:
-      "Roer kwark met een beetje melk tot een romige basis. Voeg havermout en blauwe bessen toe.",
-    ingrediënten: [
-      { naam: "Kwark (vol)", portie: "175g", kcal: 172, eiwit: 21, koolhydraten: 6, vetten: 7.5 },
-      { naam: "Havermout", portie: "35g", kcal: 126, eiwit: 4, koolhydraten: 21, vetten: 2 },
-      { naam: "Blauwe bessen", portie: "80g", kcal: 46, eiwit: 1, koolhydraten: 11, vetten: 0 },
-    ],
-  },
-  {
-    naam: "Ontbijt",
-    tijd: "08:00",
-    bereidingswijze:
-      "Maak overnight oats: havermout + yoghurt + melk, laat even staan. Serveer koud met banaan.",
-    ingrediënten: [
-      { naam: "Havermout", portie: "45g", kcal: 162, eiwit: 5, koolhydraten: 27, vetten: 3 },
-      { naam: "Griekse yoghurt (vol)", portie: "125g", kcal: 121, eiwit: 12.5, koolhydraten: 4.5, vetten: 6 },
-      { naam: "Melk (halfvol)", portie: "100ml", kcal: 50, eiwit: 3, koolhydraten: 5, vetten: 1.6 },
-      { naam: "Banaan", portie: "1/2 stuk", kcal: 53, eiwit: 1, koolhydraten: 14, vetten: 0 },
-    ],
-  },
-  {
-    naam: "Ontbijt",
-    tijd: "08:00",
-    bereidingswijze: "Kwark met fruit en een handje havermout. Koud serveren.",
-    ingrediënten: [
-      { naam: "Kwark (mager)", portie: "200g", kcal: 114, eiwit: 20, koolhydraten: 7, vetten: 0.4 },
-      { naam: "Havermout", portie: "30g", kcal: 108, eiwit: 4, koolhydraten: 18, vetten: 2 },
-      { naam: "Appel", portie: "1 middelgroot", kcal: 95, eiwit: 0, koolhydraten: 25, vetten: 0 },
-    ],
-  },
-  {
-    naam: "Ontbijt",
-    tijd: "08:00",
-    bereidingswijze: "Yoghurtbowl met havermout en aardbeien. Niet verwarmen.",
-    ingrediënten: [
-      { naam: "Griekse yoghurt (mager)", portie: "200g", kcal: 118, eiwit: 20, koolhydraten: 7, vetten: 0.8 },
-      { naam: "Havermout", portie: "40g", kcal: 144, eiwit: 5, koolhydraten: 24, vetten: 2 },
-      { naam: "Aardbeien", portie: "120g", kcal: 38, eiwit: 1, koolhydraten: 10, vetten: 0 },
-    ],
-  },
-];
-
-const LUNCH_OPTIES: MealTemplate[] = [
-  {
-    naam: "Lunch",
-    tijd: "12:30",
-    bereidingswijze: "Bak de kipfilet. Serveer met zoete aardappel en broccoli.",
-    ingrediënten: [
-      { naam: "Kipfilet", portie: "150g", kcal: 248, eiwit: 46, koolhydraten: 0, vetten: 5 },
-      { naam: "Zoete aardappel", portie: "200g", kcal: 180, eiwit: 4, koolhydraten: 41, vetten: 0 },
-      { naam: "Broccoli", portie: "150g", kcal: 51, eiwit: 4, koolhydraten: 10, vetten: 1 },
-      { naam: "Olijfolie", portie: "1 el", kcal: 120, eiwit: 0, koolhydraten: 0, vetten: 14 },
-    ],
-  },
-  {
-    naam: "Lunch",
-    tijd: "12:30",
-    bereidingswijze: "Bak de kalkoenfilet. Serveer met rijst en spinazie.",
-    ingrediënten: [
-      { naam: "Kalkoenfilet", portie: "150g", kcal: 203, eiwit: 45, koolhydraten: 0, vetten: 1.5 },
-      { naam: "Rijst (gekookt)", portie: "150g", kcal: 195, eiwit: 4, koolhydraten: 42, vetten: 0.5 },
-      { naam: "Spinazie (rauw)", portie: "100g", kcal: 23, eiwit: 3, koolhydraten: 4, vetten: 0 },
-      { naam: "Olijfolie", portie: "1 el", kcal: 120, eiwit: 0, koolhydraten: 0, vetten: 14 },
-    ],
-  },
-  {
-    naam: "Lunch",
-    tijd: "12:30",
-    bereidingswijze: "Tonijn mengen met komkommer en tomaat. Serveer met volkoren brood.",
-    ingrediënten: [
-      { naam: "Tonijn (vers)", portie: "120g", kcal: 173, eiwit: 36, koolhydraten: 0, vetten: 1 },
-      { naam: "Brood (volkoren)", portie: "2 sneden", kcal: 160, eiwit: 8, koolhydraten: 26, vetten: 2 },
-      { naam: "Komkommer", portie: "100g", kcal: 16, eiwit: 1, koolhydraten: 4, vetten: 0 },
-      { naam: "Tomaten", portie: "100g", kcal: 18, eiwit: 1, koolhydraten: 4, vetten: 0 },
-    ],
-  },
-  {
-    naam: "Lunch",
-    tijd: "12:30",
-    bereidingswijze: "Bak magere rundergehakt. Serveer met pasta en paprika.",
-    ingrediënten: [
-      { naam: "Rundergehakt (mager)", portie: "120g", kcal: 300, eiwit: 31, koolhydraten: 0, vetten: 18 },
-      { naam: "Pasta (gekookt)", portie: "150g", kcal: 197, eiwit: 7.5, koolhydraten: 39, vetten: 1.5 },
-      { naam: "Paprika (rood)", portie: "100g", kcal: 31, eiwit: 1, koolhydraten: 7, vetten: 0 },
-    ],
-  },
-  {
-    naam: "Lunch",
-    tijd: "12:30",
-    bereidingswijze: "Kook eieren. Serveer met aardappel en groene bonen.",
-    ingrediënten: [
-      { naam: "Ei (heel)", portie: "2 stuks", kcal: 155, eiwit: 13, koolhydraten: 1, vetten: 11 },
-      { naam: "Aardappel (gekookt)", portie: "200g", kcal: 174, eiwit: 4, koolhydraten: 40, vetten: 0 },
-      { naam: "Groene bonen", portie: "150g", kcal: 47, eiwit: 3, koolhydraten: 10, vetten: 0 },
-    ],
-  },
-  {
-    naam: "Lunch",
-    tijd: "12:30",
-    bereidingswijze: "Bak kippendij. Serveer met quinoa en courgette.",
-    ingrediënten: [
-      { naam: "Kippendij", portie: "140g", kcal: 293, eiwit: 36, koolhydraten: 0, vetten: 15 },
-      { naam: "Quinoa (gekookt)", portie: "150g", kcal: 180, eiwit: 6.6, koolhydraten: 33, vetten: 2.9 },
-      { naam: "Courgette", portie: "150g", kcal: 26, eiwit: 2, koolhydraten: 5, vetten: 0 },
-    ],
-  },
-  {
-    naam: "Lunch",
-    tijd: "12:30",
-    bereidingswijze: "Kabeljauw bakken of stomen. Serveer met zoete aardappel en bloemkool.",
-    ingrediënten: [
-      { naam: "Kabeljauw", portie: "160g", kcal: 131, eiwit: 29, koolhydraten: 0, vetten: 1 },
-      { naam: "Zoete aardappel", portie: "180g", kcal: 162, eiwit: 3, koolhydraten: 37, vetten: 0 },
-      { naam: "Bloemkool", portie: "150g", kcal: 38, eiwit: 3, koolhydraten: 8, vetten: 0 },
-      { naam: "Olijfolie", portie: "1 el", kcal: 120, eiwit: 0, koolhydraten: 0, vetten: 14 },
-    ],
-  },
-  {
-    naam: "Lunch",
-    tijd: "12:30",
-    bereidingswijze: "Wraps met kip, paprika en cottage cheese.",
-    ingrediënten: [
-      { naam: "Kipfilet", portie: "140g", kcal: 231, eiwit: 43, koolhydraten: 0, vetten: 5 },
-      { naam: "Brood (volkoren)", portie: "2 sneden", kcal: 160, eiwit: 8, koolhydraten: 26, vetten: 2 },
-      { naam: "Paprika (rood)", portie: "100g", kcal: 31, eiwit: 1, koolhydraten: 7, vetten: 0 },
-      { naam: "Cottage cheese", portie: "100g", kcal: 98, eiwit: 11, koolhydraten: 3.4, vetten: 4.3 },
-    ],
-  },
-  {
-    naam: "Lunch",
-    tijd: "12:30",
-    bereidingswijze: "Zalm salade met volkoren pasta en komkommer.",
-    ingrediënten: [
-      { naam: "Zalm", portie: "130g", kcal: 270, eiwit: 38, koolhydraten: 0, vetten: 12 },
-      { naam: "Volkoren pasta (gekookt)", portie: "140g", kcal: 174, eiwit: 7, koolhydraten: 35, vetten: 1.5 },
-      { naam: "Komkommer", portie: "100g", kcal: 16, eiwit: 1, koolhydraten: 4, vetten: 0 },
-    ],
-  },
-  {
-    naam: "Lunch",
-    tijd: "12:30",
-    bereidingswijze: "Linzen stoofpot met mager rundvlees en wortelen.",
-    ingrediënten: [
-      { naam: "Rundvlees (mager)", portie: "120g", kcal: 300, eiwit: 31, koolhydraten: 0, vetten: 18 },
-      { naam: "Linzen (gekookt)", portie: "150g", kcal: 174, eiwit: 14, koolhydraten: 30, vetten: 0.6 },
-      { naam: "Wortelen (rauw)", portie: "100g", kcal: 41, eiwit: 0.9, koolhydraten: 10, vetten: 0.2 },
-    ],
-  },
-  {
-    naam: "Lunch",
-    tijd: "12:30",
-    bereidingswijze: "Tofu roerbak met bruine rijst en paksoi.",
-    ingrediënten: [
-      { naam: "Tofu", portie: "180g", kcal: 137, eiwit: 14, koolhydraten: 3.4, vetten: 8.6 },
-      { naam: "Bruine rijst (gekookt)", portie: "150g", kcal: 167, eiwit: 4, koolhydraten: 35, vetten: 1 },
-      { naam: "Paksoi", portie: "150g", kcal: 20, eiwit: 2, koolhydraten: 3, vetten: 0.3 },
-      { naam: "Olijfolie", portie: "1 el", kcal: 120, eiwit: 0, koolhydraten: 0, vetten: 14 },
-    ],
-  },
-];
-
-const DINER_OPTIES: MealTemplate[] = [
-  {
-    naam: "Diner",
-    tijd: "18:00",
-    bereidingswijze: "Bak de zalm. Kook quinoa. Stoom groene bonen. Serveer met avocado.",
-    ingrediënten: [
-      { naam: "Zalm", portie: "150g", kcal: 312, eiwit: 44, koolhydraten: 0, vetten: 14 },
-      { naam: "Quinoa", portie: "100g (gekookt)", kcal: 120, eiwit: 4, koolhydraten: 22, vetten: 2 },
-      { naam: "Groene bonen", portie: "150g", kcal: 44, eiwit: 2, koolhydraten: 10, vetten: 0 },
-      { naam: "Avocado", portie: "50g", kcal: 80, eiwit: 1, koolhydraten: 4, vetten: 7 },
-    ],
-  },
-  {
-    naam: "Diner",
-    tijd: "18:00",
-    bereidingswijze: "Bak kipfilet. Serveer met bruine rijst en broccoli.",
-    ingrediënten: [
-      { naam: "Kipfilet", portie: "160g", kcal: 264, eiwit: 50, koolhydraten: 0, vetten: 6 },
-      { naam: "Bruine rijst (gekookt)", portie: "150g", kcal: 167, eiwit: 4, koolhydraten: 35, vetten: 1 },
-      { naam: "Broccoli", portie: "150g", kcal: 51, eiwit: 4, koolhydraten: 10, vetten: 1 },
-      { naam: "Olijfolie", portie: "1 el", kcal: 120, eiwit: 0, koolhydraten: 0, vetten: 14 },
-    ],
-  },
-  {
-    naam: "Diner",
-    tijd: "18:00",
-    bereidingswijze: "Bak of grill magere rundvlees. Serveer met aardappel en spinazie.",
-    ingrediënten: [
-      { naam: "Rundvlees (mager)", portie: "140g", kcal: 350, eiwit: 36, koolhydraten: 0, vetten: 21 },
-      { naam: "Aardappel (gekookt)", portie: "200g", kcal: 174, eiwit: 4, koolhydraten: 40, vetten: 0 },
-      { naam: "Spinazie (gekookt)", portie: "150g", kcal: 35, eiwit: 4.5, koolhydraten: 6, vetten: 0.5 },
-    ],
-  },
-  {
-    naam: "Diner",
-    tijd: "18:00",
-    bereidingswijze: "Bak makreel kort in de pan. Serveer met zoete aardappel en paprika.",
-    ingrediënten: [
-      { naam: "Makreel", portie: "140g", kcal: 287, eiwit: 27, koolhydraten: 0, vetten: 20 },
-      { naam: "Zoete aardappel", portie: "180g", kcal: 162, eiwit: 3, koolhydraten: 37, vetten: 0 },
-      { naam: "Paprika (rood)", portie: "120g", kcal: 37, eiwit: 1, koolhydraten: 8, vetten: 0 },
-    ],
-  },
-  {
-    naam: "Diner",
-    tijd: "18:00",
-    bereidingswijze: "Bak garnalen snel. Serveer met pasta en courgette.",
-    ingrediënten: [
-      { naam: "Garnalen", portie: "150g", kcal: 149, eiwit: 36, koolhydraten: 0, vetten: 0.5 },
-      { naam: "Pasta (gekookt)", portie: "150g", kcal: 197, eiwit: 7.5, koolhydraten: 39, vetten: 1.5 },
-      { naam: "Courgette", portie: "150g", kcal: 26, eiwit: 2, koolhydraten: 5, vetten: 0 },
-      { naam: "Olijfolie", portie: "1 el", kcal: 120, eiwit: 0, koolhydraten: 0, vetten: 14 },
-    ],
-  },
-  {
-    naam: "Diner",
-    tijd: "18:00",
-    bereidingswijze: "Kalkoenfilet bakken. Serveer met quinoa en boerenkool.",
-    ingrediënten: [
-      { naam: "Kalkoenfilet", portie: "160g", kcal: 216, eiwit: 48, koolhydraten: 0, vetten: 1.6 },
-      { naam: "Quinoa (gekookt)", portie: "140g", kcal: 168, eiwit: 6, koolhydraten: 31, vetten: 2.7 },
-      { naam: "Boerenkool", portie: "120g", kcal: 59, eiwit: 5, koolhydraten: 11, vetten: 1 },
-    ],
-  },
-  {
-    naam: "Diner",
-    tijd: "18:00",
-    bereidingswijze: "Kabeljauw in de oven of pan. Serveer met rijst en broccoli.",
-    ingrediënten: [
-      { naam: "Kabeljauw", portie: "170g", kcal: 139, eiwit: 31, koolhydraten: 0, vetten: 1 },
-      { naam: "Rijst (gekookt)", portie: "160g", kcal: 208, eiwit: 4, koolhydraten: 45, vetten: 0.5 },
-      { naam: "Broccoli", portie: "150g", kcal: 51, eiwit: 4, koolhydraten: 10, vetten: 1 },
-      { naam: "Olijfolie", portie: "1 el", kcal: 120, eiwit: 0, koolhydraten: 0, vetten: 14 },
-    ],
-  },
-  {
-    naam: "Diner",
-    tijd: "18:00",
-    bereidingswijze: "Roer roerbak met kip, paprika en volkoren rijst.",
-    ingrediënten: [
-      { naam: "Kipfilet", portie: "150g", kcal: 248, eiwit: 46, koolhydraten: 0, vetten: 5 },
-      { naam: "Bruine rijst (gekookt)", portie: "150g", kcal: 167, eiwit: 4, koolhydraten: 35, vetten: 1 },
-      { naam: "Paprika (rood)", portie: "120g", kcal: 37, eiwit: 1, koolhydraten: 8, vetten: 0 },
-      { naam: "Olijfolie", portie: "1 el", kcal: 120, eiwit: 0, koolhydraten: 0, vetten: 14 },
-    ],
-  },
-  {
-    naam: "Diner",
-    tijd: "18:00",
-    bereidingswijze: "Pasta met mager rundergehakt en courgette.",
-    ingrediënten: [
-      { naam: "Rundergehakt (mager)", portie: "130g", kcal: 325, eiwit: 34, koolhydraten: 0, vetten: 20 },
-      { naam: "Volkoren pasta (gekookt)", portie: "150g", kcal: 186, eiwit: 7.5, koolhydraten: 37, vetten: 1.5 },
-      { naam: "Courgette", portie: "150g", kcal: 26, eiwit: 2, koolhydraten: 5, vetten: 0 },
-    ],
-  },
-  {
-    naam: "Diner",
-    tijd: "18:00",
-    bereidingswijze: "Tonijn salade met quinoa en spinazie.",
-    ingrediënten: [
-      { naam: "Tonijn (vers)", portie: "150g", kcal: 216, eiwit: 45, koolhydraten: 0, vetten: 1.5 },
-      { naam: "Quinoa (gekookt)", portie: "140g", kcal: 168, eiwit: 6, koolhydraten: 31, vetten: 2.7 },
-      { naam: "Spinazie (rauw)", portie: "100g", kcal: 23, eiwit: 3, koolhydraten: 4, vetten: 0 },
-      { naam: "Olijfolie", portie: "1 el", kcal: 120, eiwit: 0, koolhydraten: 0, vetten: 14 },
-    ],
-  },
-  {
-    naam: "Diner",
-    tijd: "18:00",
-    bereidingswijze: "Omelet met groenten en volkoren brood.",
-    ingrediënten: [
-      { naam: "Ei (heel)", portie: "3 stuks", kcal: 233, eiwit: 20, koolhydraten: 1.5, vetten: 16 },
-      { naam: "Broccoli", portie: "150g", kcal: 51, eiwit: 4, koolhydraten: 10, vetten: 1 },
-      { naam: "Brood (volkoren)", portie: "2 sneden", kcal: 160, eiwit: 8, koolhydraten: 26, vetten: 2 },
-    ],
-  },
-  {
-    naam: "Diner",
-    tijd: "18:00",
-    bereidingswijze: "Varkenshaas met zoete aardappel en boerenkool.",
-    ingrediënten: [
-      { naam: "Varkenshaas", portie: "160g", kcal: 229, eiwit: 35, koolhydraten: 0, vetten: 10 },
-      { naam: "Zoete aardappel", portie: "180g", kcal: 162, eiwit: 3, koolhydraten: 37, vetten: 0 },
-      { naam: "Boerenkool", portie: "120g", kcal: 59, eiwit: 5, koolhydraten: 11, vetten: 1 },
-    ],
-  },
-];
-
-const SNACK_OPTIES: MealTemplate[] = [
-  {
-    naam: "Tussendoortje",
-    tijd: "10:00",
-    bereidingswijze: "Kwark met een handje amandelen als tussendoortje.",
-    ingrediënten: [
-      { naam: "Kwark (mager)", portie: "150g", kcal: 86, eiwit: 15, koolhydraten: 5, vetten: 0.3 },
-      { naam: "Amandelen", portie: "15g", kcal: 87, eiwit: 3, koolhydraten: 3, vetten: 7.5 },
-    ],
-  },
-  {
-    naam: "Tussendoortje",
-    tijd: "15:00",
-    bereidingswijze: "Yoghurt met appel.",
-    ingrediënten: [
-      { naam: "Griekse yoghurt (mager)", portie: "150g", kcal: 89, eiwit: 15, koolhydraten: 5, vetten: 0.6 },
-      { naam: "Appel", portie: "1 middelgroot", kcal: 95, eiwit: 0, koolhydraten: 25, vetten: 0 },
-    ],
-  },
-  {
-    naam: "Tussendoortje",
-    tijd: "10:00",
-    bereidingswijze: "Skyr met blauwe bessen.",
-    ingrediënten: [
-      { naam: "Skyr", portie: "150g", kcal: 89, eiwit: 16.5, koolhydraten: 6, vetten: 0.3 },
-      { naam: "Blauwe bessen", portie: "80g", kcal: 46, eiwit: 1, koolhydraten: 11, vetten: 0 },
-    ],
-  },
-  {
-    naam: "Tussendoortje",
-    tijd: "15:00",
-    bereidingswijze: "Havermoutkoekje-vervanger: yoghurt met havermout en aardbei.",
-    ingrediënten: [
-      { naam: "Griekse yoghurt (vol)", portie: "125g", kcal: 121, eiwit: 12.5, koolhydraten: 4.5, vetten: 6 },
-      { naam: "Havermout", portie: "20g", kcal: 72, eiwit: 2.5, koolhydraten: 12, vetten: 1 },
-      { naam: "Aardbeien", portie: "80g", kcal: 26, eiwit: 1, koolhydraten: 6, vetten: 0 },
-    ],
-  },
-  {
-    naam: "Tussendoortje",
-    tijd: "10:00",
-    bereidingswijze: "Kwark met walnoten.",
-    ingrediënten: [
-      { naam: "Kwark (vol)", portie: "125g", kcal: 123, eiwit: 15, koolhydraten: 4, vetten: 5 },
-      { naam: "Walnoten", portie: "15g", kcal: 98, eiwit: 2, koolhydraten: 2, vetten: 10 },
-    ],
-  },
-  {
-    naam: "Tussendoortje",
-    tijd: "15:00",
-    bereidingswijze: "Appel met amandelen.",
-    ingrediënten: [
-      { naam: "Appel", portie: "1 middelgroot", kcal: 95, eiwit: 0, koolhydraten: 25, vetten: 0 },
-      { naam: "Amandelen", portie: "20g", kcal: 116, eiwit: 4, koolhydraten: 4, vetten: 10 },
-    ],
-  },
-  {
-    naam: "Tussendoortje",
-    tijd: "10:00",
-    bereidingswijze: "Magere kwark met banaan.",
-    ingrediënten: [
-      { naam: "Kwark (mager)", portie: "175g", kcal: 100, eiwit: 17.5, koolhydraten: 6, vetten: 0.4 },
-      { naam: "Banaan", portie: "1/2 stuk", kcal: 53, eiwit: 1, koolhydraten: 14, vetten: 0 },
-    ],
-  },
-];
-
 function pick<T>(items: T[], dayIndex: number, salt: number, varietySeed = 0): T {
   return items[(dayIndex + salt + varietySeed) % items.length];
+}
+
+function pickUnused(
+  options: MealTemplate[],
+  used: Set<string>,
+  dayIndex: number,
+  salt: number,
+  varietySeed: number
+): MealTemplate {
+  const unused = options.filter((o) => !used.has(o.naam));
+  const pool = unused.length > 0 ? unused : options;
+  const chosen = pick(pool, dayIndex, salt, varietySeed);
+  used.add(chosen.naam);
+  return chosen;
+}
+
+function isVegetarianMeal(template: MealTemplate): boolean {
+  const blocked = ["kip", "rundvlees", "varkensvlees", "vis", "kalkoen", "zalm", "makreel", "tonijn", "kabeljauw", "garnalen"];
+  return !template.ingrediënten.some((ing) =>
+    blocked.some((ex) => ingredientMatchesExclusion(ing.naam, ex))
+  );
+}
+
+function isVeganMeal(template: MealTemplate): boolean {
+  if (!isVegetarianMeal(template)) return false;
+  const dairyEgg = ["eieren", "kwark", "yoghurt", "skyr", "melk", "kaas", "feta", "cottage"];
+  return !template.ingrediënten.some((ing) =>
+    dairyEgg.some((ex) => ing.naam.toLowerCase().includes(ex) || ingredientMatchesExclusion(ing.naam, ex))
+  );
 }
 
 function mealHasPreferredProtein(template: MealTemplate, preferredKeys: string[]): boolean {
@@ -794,17 +435,35 @@ function mealHasPreferredProtein(template: MealTemplate, preferredKeys: string[]
   });
 }
 
+function filterByStyles(options: MealTemplate[], styles: string[]): MealTemplate[] {
+  const vegetarian = styles.some((s) => /vegetarisch/i.test(s));
+  const vegan = styles.some((s) => /vegan/i.test(s));
+  if (vegan) {
+    const filtered = options.filter(isVeganMeal);
+    return filtered.length > 0 ? filtered : options.filter(isVegetarianMeal);
+  }
+  if (vegetarian) {
+    const filtered = options.filter(isVegetarianMeal);
+    return filtered.length > 0 ? filtered : options;
+  }
+  return options;
+}
+
 function pickPreferred(
   options: MealTemplate[],
   dayIndex: number,
   salt: number,
   preferredKeys: string[],
-  varietySeed = 0
+  varietySeed = 0,
+  used?: Set<string>
 ): MealTemplate {
-  if (preferredKeys.length === 0) return pick(options, dayIndex, salt, varietySeed);
-  const matching = options.filter((o) => mealHasPreferredProtein(o, preferredKeys));
-  if (matching.length === 0) return pick(options, dayIndex, salt, varietySeed);
-  return pick(matching, dayIndex, salt, varietySeed);
+  const matching =
+    preferredKeys.length === 0
+      ? options
+      : options.filter((o) => mealHasPreferredProtein(o, preferredKeys));
+  const pool = matching.length > 0 ? matching : options;
+  if (used) return pickUnused(pool, used, dayIndex, salt, varietySeed);
+  return pick(pool, dayIndex, salt, varietySeed);
 }
 
 export function buildDefaultMaaltijden(dayIndex = 0): Maaltijd[] {
@@ -1237,7 +896,15 @@ function scaleMealsToTargets(
 function trimMeals(meals: Maaltijd[], count: number): Maaltijd[] {
   if (count <= 3) return [meals[0], meals[2], meals[4]];
   if (count === 4) return [meals[0], meals[2], meals[3], meals[4]];
+  if (count === 5) return meals.slice(0, 5);
   return meals;
+}
+
+function mealAlreadyHasPreferredProtein(meal: Maaltijd, preferredKeys: string[]): boolean {
+  return meal.ingrediënten.some((ing) => {
+    const ref = findProteinRef(ing.naam);
+    return Boolean(ref?.warm && preferredKeys.includes(ref.key));
+  });
 }
 
 function buildDayMeals(
@@ -1246,70 +913,87 @@ function buildDayMeals(
   exclusions: string[],
   preferredProteins: string[],
   mealCount: number,
-  varietySeed = 0
+  varietySeed = 0,
+  used?: { ontbijt: Set<string>; lunch: Set<string>; diner: Set<string>; snack: Set<string> },
+  styles: string[] = []
 ): Maaltijd[] {
-  const ontbijt = pick(ONTBIJT_OPTIES, dayIndex, 0, varietySeed);
-  const lunch = pickPreferred(LUNCH_OPTIES, dayIndex, 1 + varietySeed, preferredKeys, varietySeed);
-  const diner = pickPreferred(DINER_OPTIES, dayIndex, 2 + varietySeed, preferredKeys, varietySeed);
-  const snack1 = pick(SNACK_OPTIES, dayIndex, 3, varietySeed);
-  const snack2 = pick(SNACK_OPTIES, dayIndex, 5 + varietySeed, varietySeed);
+  const ontbijt = pickUnused(
+    filterByStyles(ONTBIJT_OPTIES, styles),
+    used?.ontbijt ?? new Set(),
+    dayIndex,
+    0,
+    varietySeed
+  );
+  const lunch = pickPreferred(
+    filterByStyles(LUNCH_OPTIES, styles),
+    dayIndex,
+    1 + varietySeed,
+    preferredKeys,
+    varietySeed,
+    used?.lunch
+  );
+  const diner = pickPreferred(
+    filterByStyles(DINER_OPTIES, styles),
+    dayIndex,
+    2 + varietySeed,
+    preferredKeys,
+    varietySeed,
+    used?.diner
+  );
+  const snackPool = filterByStyles(SNACK_OPTIES, styles);
+  const snack1 = pickUnused(snackPool, used?.snack ?? new Set(), dayIndex, 3, varietySeed);
+  const snack2 = pickUnused(snackPool, used?.snack ?? new Set(), dayIndex, 5, varietySeed);
+  const snack3 = pickUnused(snackPool, used?.snack ?? new Set(), dayIndex, 7, varietySeed);
 
   let meals: Maaltijd[] = [
     withMealTotals({ ...ontbijt, id: `${dayIndex}-1` }),
     withMealTotals({
       ...snack1,
       id: `${dayIndex}-2`,
-      naam: "Tussendoortje ochtend",
+      naam: snack1.naam.replace("Tussendoortje", "Tussendoortje ochtend"),
       tijd: "10:00",
     }),
     withMealTotals({ ...lunch, id: `${dayIndex}-3` }),
     withMealTotals({
       ...snack2,
       id: `${dayIndex}-4`,
-      naam: "Tussendoortje middag",
+      naam: snack2.naam.replace("Tussendoortje", "Tussendoortje middag"),
       tijd: "15:00",
     }),
     withMealTotals({ ...diner, id: `${dayIndex}-5` }),
+    withMealTotals({
+      ...snack3,
+      id: `${dayIndex}-6`,
+      naam: snack3.naam.replace("Tussendoortje", "Tussendoortje avond"),
+      tijd: "20:00",
+    }),
   ];
 
-  // Force preferred protein rotation on lunch/dinner when preferences set
+  // Alleen eiwitbron vervangen als de maaltijd nog geen gekozen bron heeft
   if (preferredKeys.length > 0) {
-    const warmKeys = preferredKeys.filter((k) => PROTEIN_REFS.find((r) => r.key === k)?.warm);
-    // Main warm protein: never eggs alone (te vet / te weinig eiwit na schalen)
-    const mainPool = warmKeys.filter((k) => k !== "eieren");
-    const pool =
-      mainPool.length > 0
-        ? mainPool
-        : warmKeys.length > 0
-          ? warmKeys
-          : preferredKeys.filter((k) => k !== "eieren");
-    const effectivePool = pool.length > 0 ? pool : ["kip"];
-
-    meals = meals.map((meal, idx) => {
+    meals = meals.map((meal) => {
       if (!/lunch|diner/i.test(meal.naam)) return meal;
-      const key = effectivePool[(dayIndex + idx) % effectivePool.length];
+      if (mealAlreadyHasPreferredProtein(meal, preferredKeys)) return meal;
+
+      const warmKeys = preferredKeys.filter((k) => PROTEIN_REFS.find((r) => r.key === k)?.warm);
+      const mainPool = warmKeys.filter((k) => k !== "eieren");
+      const pool = mainPool.length > 0 ? mainPool : warmKeys.length > 0 ? warmKeys : ["kip"];
+      const key = pool[dayIndex % pool.length];
       const ref = PROTEIN_REFS.find((r) => r.key === key) ?? PROTEIN_REFS.find((r) => r.key === "kip")!;
 
       let replaced = false;
       const ings = meal.ingrediënten.map((ing) => {
         if (!replaced && isMainProteinIngredient(ing) && findProteinRef(ing.naam)?.warm) {
           replaced = true;
-          return replaceProteinIngredient(ing, [ref.key], dayIndex, idx);
+          return replaceProteinIngredient(ing, [ref.key], dayIndex, 0);
         }
         return ing;
       });
-      if (!replaced) {
-        ings.unshift(proteinFromGrams(ref, 160));
-      }
-      // Eieren als extra (max 2) op lunch van sommige dagen, niet als hoofdeiwit
-      if (warmKeys.includes("eieren") && /lunch/i.test(meal.naam) && dayIndex % 2 === 0) {
-        const eggRef = PROTEIN_REFS.find((r) => r.key === "eieren")!;
-        ings.push(proteinFromGrams(eggRef, 100));
-      }
+      if (!replaced) ings.unshift(proteinFromGrams(ref, 150));
       return withMealTotals({
         ...meal,
         ingrediënten: ings,
-        bereidingswijze: `Bereid ${ref.naam}. ${meal.bereidingswijze || ""}`.trim(),
+        bereidingswijze: `${meal.bereidingswijze} Gebruik ${ref.naam} als eiwitbron.`.trim(),
       });
     });
   }
@@ -1332,7 +1016,13 @@ export function buildWeekmenu(
   const styles = options.styles ?? [];
   const mealCount = Math.min(6, Math.max(3, options.mealCount ?? mealCountArg ?? 5));
   const preferredKeys = resolvePreferredKeys(preferredProteins);
-  const varietySeed = Math.max(0, Math.min(6, options.varietySeed ?? 0));
+  const varietySeed = Math.max(0, Math.min(20, options.varietySeed ?? 0));
+  const used = {
+    ontbijt: new Set<string>(),
+    lunch: new Set<string>(),
+    diner: new Set<string>(),
+    snack: new Set<string>(),
+  };
 
   return DAGEN.map((dagNaam, dayIndex) => {
     const base = buildDayMeals(
@@ -1341,7 +1031,9 @@ export function buildWeekmenu(
       exclusions,
       preferredProteins,
       mealCount,
-      varietySeed
+      varietySeed,
+      used,
+      styles
     );
     const scaled = scaleMealsToTargets(base, targets, styles);
     return buildDagMenu(dagNaam, scaled, targets);

@@ -17,6 +17,7 @@ import {
   formatPortieGrams,
   rescaleIngredientPortion,
 } from "@/lib/weekmenu";
+import { SCHEMA_PRESETS } from "@/lib/meal-library";
 
 const AI_VLEES_OPTIES = [
   "Kip",
@@ -91,10 +92,11 @@ function SchemaDetailContent({ schemaId }: { schemaId: string }) {
   const autoSavedRef = useRef(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const defaultAiOptions = {
-    aantalMaaltijden: "3",
+    aantalMaaltijden: "5",
     soortMaaltijden: ["Gebalanceerd"] as string[],
     vlees: [] as string[],
     groenten: [] as string[],
+    presetId: "onderhoud",
   };
   const [aiOptions, setAiOptions] = useState(defaultAiOptions);
   const [nieuweMaaltijd, setNieuweMaaltijd] = useState({
@@ -1832,6 +1834,63 @@ function SchemaDetailContent({ schemaId }: { schemaId: string }) {
             {/* AI Generator Content */}
             {!isGenerating ? (
               <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
+                <div>
+                  <label
+                    style={{
+                      display: "block",
+                      marginBottom: "0.75rem",
+                      fontWeight: 600,
+                      fontSize: "1rem",
+                    }}
+                  >
+                    Kies een kant-en-klaar weekschema
+                  </label>
+                  <p style={{ fontSize: "0.85rem", color: "#64748b", margin: "0 0 0.75rem" }}>
+                    Complete 7-daagse menu’s met echte gerechten. Daarna kun je nog bronnen of groenten afvinken.
+                  </p>
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(2, 1fr)",
+                      gap: "0.75rem",
+                    }}
+                  >
+                    {SCHEMA_PRESETS.map((preset) => {
+                      const selected = aiOptions.presetId === preset.id;
+                      return (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          onClick={() =>
+                            setAiOptions({
+                              ...aiOptions,
+                              presetId: preset.id,
+                              soortMaaltijden: preset.styles,
+                              vlees: preset.preferredProteins,
+                              aantalMaaltijden: String(preset.mealCount),
+                            })
+                          }
+                          style={{
+                            textAlign: "left",
+                            padding: "0.9rem 1rem",
+                            background: selected ? "rgba(15, 118, 110, 0.08)" : "var(--client-surface)",
+                            borderRadius: "0.5rem",
+                            border: selected
+                              ? "2px solid var(--client-brand)"
+                              : "1px solid var(--client-border)",
+                            cursor: "pointer",
+                          }}
+                        >
+                          <div style={{ fontWeight: 600, marginBottom: "0.25rem" }}>{preset.naam}</div>
+                          <div style={{ fontSize: "0.8rem", color: "#64748b", lineHeight: 1.4 }}>
+                            {preset.beschrijving}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 {/* Aantal Maaltijden */}
                 <div>
                   <label
@@ -2097,7 +2156,7 @@ function SchemaDetailContent({ schemaId }: { schemaId: string }) {
                             preferredProteins: aiOptions.vlees,
                             styles,
                             mealCount: aantalMaaltijden,
-                            varietySeed: Math.floor(Math.random() * 7),
+                            varietySeed: Math.floor(Math.random() * 21),
                           }
                         );
                         setWeekmenu(generated);
@@ -2122,9 +2181,8 @@ function SchemaDetailContent({ schemaId }: { schemaId: string }) {
                     Generate Plan
                   </button>
                   <p style={{ fontSize: "0.85rem", color: "#64748b", margin: "0.75rem 0 0" }}>
-                    Elke generatie kiest andere maaltijdcombinaties. Voor extra variatie: voeg recepten toe via
-                    {" "}
-                    <strong>Maaltijd Toevoegen → Recepten</strong>, of pas maaltijden handmatig aan via Bewerken.
+                    Elke generatie kiest andere gerechten uit de bibliotheek (14 ontbijten, 16 lunches, 16 diners).
+                    Daarna kun je porties nog aanpassen via Bewerken.
                   </p>
                   <button
                     type="button"
