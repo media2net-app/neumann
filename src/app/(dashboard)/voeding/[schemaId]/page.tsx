@@ -324,7 +324,26 @@ function SchemaDetailContent({ schemaId }: { schemaId: string }) {
     updateWeekmenuDay(dagNaam, (maaltijden) => [...maaltijden, withMealTotals(meal)]);
   };
 
-  const openAddModal = (tab: "maaltijd" | "ingrediënten" = "maaltijd", mealId?: string) => {
+  const addRecipeToMeal = (
+    dagNaam: string,
+    maaltijdId: string,
+    recept: { naam: string; tijd?: string; ingrediënten: Ingredient[] }
+  ) => {
+    updateWeekmenuDay(dagNaam, (maaltijden) =>
+      maaltijden.map((maaltijd) => {
+        if (maaltijd.id !== maaltijdId) return maaltijd;
+        return withMealTotals({
+          ...maaltijd,
+          ingrediënten: [...maaltijd.ingrediënten, ...recept.ingrediënten],
+          bereidingswijze: maaltijd.bereidingswijze
+            ? `${maaltijd.bereidingswijze} Recept: ${recept.naam}.`
+            : `Recept: ${recept.naam}.`,
+        });
+      })
+    );
+  };
+
+  const openAddModal = (tab: "maaltijd" | "ingrediënten" | "recepten" = "maaltijd", mealId?: string) => {
     const dayMeals = weekmenu.find((d) => d.dag === actieveDag)?.maaltijden ?? [];
     setModalMealId(mealId ?? dayMeals[0]?.id ?? "");
     setModalTab(tab);
@@ -1584,6 +1603,27 @@ function SchemaDetailContent({ schemaId }: { schemaId: string }) {
                 <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
                   <div>
                     <label
+                      htmlFor="receptMaaltijd"
+                      style={{ display: "block", marginBottom: "0.5rem", fontWeight: 500 }}
+                    >
+                      Recept toevoegen aan maaltijd ({actieveDag})
+                    </label>
+                    <select
+                      id="receptMaaltijd"
+                      className="page-filter"
+                      style={{ width: "100%" }}
+                      value={modalMealId}
+                      onChange={(e) => setModalMealId(e.target.value)}
+                    >
+                      {(weekmenu.find((d) => d.dag === actieveDag)?.maaltijden ?? []).map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.naam} ({m.tijd})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label
                       htmlFor="receptZoek"
                       style={{
                         display: "block",
@@ -1645,7 +1685,15 @@ function SchemaDetailContent({ schemaId }: { schemaId: string }) {
                           e.currentTarget.style.transform = "translateY(0)";
                         }}
                         onClick={() => {
-                          alert(`Recept "${recept.naam}" geselecteerd. Ingrediënten worden toegevoegd aan de maaltijd.`);
+                          if (!modalMealId) {
+                            alert("Selecteer een maaltijd");
+                            return;
+                          }
+                          addRecipeToMeal(actieveDag, modalMealId, {
+                            naam: recept.naam,
+                            tijd: recept.tijd,
+                            ingrediënten: recept.ingrediënten,
+                          });
                           setIsModalOpen(false);
                         }}
                       >
@@ -2049,6 +2097,7 @@ function SchemaDetailContent({ schemaId }: { schemaId: string }) {
                             preferredProteins: aiOptions.vlees,
                             styles,
                             mealCount: aantalMaaltijden,
+                            varietySeed: Math.floor(Math.random() * 7),
                           }
                         );
                         setWeekmenu(generated);
@@ -2072,6 +2121,11 @@ function SchemaDetailContent({ schemaId }: { schemaId: string }) {
                     <Sparkles size={16} />
                     Generate Plan
                   </button>
+                  <p style={{ fontSize: "0.85rem", color: "#64748b", margin: "0.75rem 0 0" }}>
+                    Elke generatie kiest andere maaltijdcombinaties. Voor extra variatie: voeg recepten toe via
+                    {" "}
+                    <strong>Maaltijd Toevoegen → Recepten</strong>, of pas maaltijden handmatig aan via Bewerken.
+                  </p>
                   <button
                     type="button"
                     className="btn btn--secondary"

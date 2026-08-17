@@ -51,6 +51,8 @@ export type WeekmenuOptions = {
   /** bv. Eiwitrijk, Low-carb */
   styles?: string[];
   mealCount?: number;
+  /** 0–6 offset zodat opnieuw genereren andere combinaties geeft */
+  varietySeed?: number;
 };
 
 export function cleanBereidingswijze(text: string, ingredientName: string): string {
@@ -540,6 +542,48 @@ const LUNCH_OPTIES: MealTemplate[] = [
       { naam: "Olijfolie", portie: "1 el", kcal: 120, eiwit: 0, koolhydraten: 0, vetten: 14 },
     ],
   },
+  {
+    naam: "Lunch",
+    tijd: "12:30",
+    bereidingswijze: "Wraps met kip, paprika en cottage cheese.",
+    ingrediënten: [
+      { naam: "Kipfilet", portie: "140g", kcal: 231, eiwit: 43, koolhydraten: 0, vetten: 5 },
+      { naam: "Brood (volkoren)", portie: "2 sneden", kcal: 160, eiwit: 8, koolhydraten: 26, vetten: 2 },
+      { naam: "Paprika (rood)", portie: "100g", kcal: 31, eiwit: 1, koolhydraten: 7, vetten: 0 },
+      { naam: "Cottage cheese", portie: "100g", kcal: 98, eiwit: 11, koolhydraten: 3.4, vetten: 4.3 },
+    ],
+  },
+  {
+    naam: "Lunch",
+    tijd: "12:30",
+    bereidingswijze: "Zalm salade met volkoren pasta en komkommer.",
+    ingrediënten: [
+      { naam: "Zalm", portie: "130g", kcal: 270, eiwit: 38, koolhydraten: 0, vetten: 12 },
+      { naam: "Volkoren pasta (gekookt)", portie: "140g", kcal: 174, eiwit: 7, koolhydraten: 35, vetten: 1.5 },
+      { naam: "Komkommer", portie: "100g", kcal: 16, eiwit: 1, koolhydraten: 4, vetten: 0 },
+    ],
+  },
+  {
+    naam: "Lunch",
+    tijd: "12:30",
+    bereidingswijze: "Linzen stoofpot met mager rundvlees en wortelen.",
+    ingrediënten: [
+      { naam: "Rundvlees (mager)", portie: "120g", kcal: 300, eiwit: 31, koolhydraten: 0, vetten: 18 },
+      { naam: "Linzen (gekookt)", portie: "150g", kcal: 174, eiwit: 14, koolhydraten: 30, vetten: 0.6 },
+      { naam: "Wortelen (rauw)", portie: "100g", kcal: 41, eiwit: 0.9, koolhydraten: 10, vetten: 0.2 },
+    ],
+  },
+  {
+    naam: "Lunch",
+    tijd: "12:30",
+    bereidingswijze: "Tofu roerbak met bruine rijst en paksoi.",
+    ingrediënten: [
+      { naam: "Tofu", portie: "180g", kcal: 137, eiwit: 14, koolhydraten: 3.4, vetten: 8.6 },
+      { naam: "Bruine rijst (gekookt)", portie: "150g", kcal: 167, eiwit: 4, koolhydraten: 35, vetten: 1 },
+      { naam: "Paksoi", portie: "150g", kcal: 20, eiwit: 2, koolhydraten: 3, vetten: 0.3 },
+      { naam: "Olijfolie", portie: "1 el", kcal: 120, eiwit: 0, koolhydraten: 0, vetten: 14 },
+    ],
+  },
 ];
 
 const DINER_OPTIES: MealTemplate[] = [
@@ -617,6 +661,58 @@ const DINER_OPTIES: MealTemplate[] = [
       { naam: "Olijfolie", portie: "1 el", kcal: 120, eiwit: 0, koolhydraten: 0, vetten: 14 },
     ],
   },
+  {
+    naam: "Diner",
+    tijd: "18:00",
+    bereidingswijze: "Roer roerbak met kip, paprika en volkoren rijst.",
+    ingrediënten: [
+      { naam: "Kipfilet", portie: "150g", kcal: 248, eiwit: 46, koolhydraten: 0, vetten: 5 },
+      { naam: "Bruine rijst (gekookt)", portie: "150g", kcal: 167, eiwit: 4, koolhydraten: 35, vetten: 1 },
+      { naam: "Paprika (rood)", portie: "120g", kcal: 37, eiwit: 1, koolhydraten: 8, vetten: 0 },
+      { naam: "Olijfolie", portie: "1 el", kcal: 120, eiwit: 0, koolhydraten: 0, vetten: 14 },
+    ],
+  },
+  {
+    naam: "Diner",
+    tijd: "18:00",
+    bereidingswijze: "Pasta met mager rundergehakt en courgette.",
+    ingrediënten: [
+      { naam: "Rundergehakt (mager)", portie: "130g", kcal: 325, eiwit: 34, koolhydraten: 0, vetten: 20 },
+      { naam: "Volkoren pasta (gekookt)", portie: "150g", kcal: 186, eiwit: 7.5, koolhydraten: 37, vetten: 1.5 },
+      { naam: "Courgette", portie: "150g", kcal: 26, eiwit: 2, koolhydraten: 5, vetten: 0 },
+    ],
+  },
+  {
+    naam: "Diner",
+    tijd: "18:00",
+    bereidingswijze: "Tonijn salade met quinoa en spinazie.",
+    ingrediënten: [
+      { naam: "Tonijn (vers)", portie: "150g", kcal: 216, eiwit: 45, koolhydraten: 0, vetten: 1.5 },
+      { naam: "Quinoa (gekookt)", portie: "140g", kcal: 168, eiwit: 6, koolhydraten: 31, vetten: 2.7 },
+      { naam: "Spinazie (rauw)", portie: "100g", kcal: 23, eiwit: 3, koolhydraten: 4, vetten: 0 },
+      { naam: "Olijfolie", portie: "1 el", kcal: 120, eiwit: 0, koolhydraten: 0, vetten: 14 },
+    ],
+  },
+  {
+    naam: "Diner",
+    tijd: "18:00",
+    bereidingswijze: "Omelet met groenten en volkoren brood.",
+    ingrediënten: [
+      { naam: "Ei (heel)", portie: "3 stuks", kcal: 233, eiwit: 20, koolhydraten: 1.5, vetten: 16 },
+      { naam: "Broccoli", portie: "150g", kcal: 51, eiwit: 4, koolhydraten: 10, vetten: 1 },
+      { naam: "Brood (volkoren)", portie: "2 sneden", kcal: 160, eiwit: 8, koolhydraten: 26, vetten: 2 },
+    ],
+  },
+  {
+    naam: "Diner",
+    tijd: "18:00",
+    bereidingswijze: "Varkenshaas met zoete aardappel en boerenkool.",
+    ingrediënten: [
+      { naam: "Varkenshaas", portie: "160g", kcal: 229, eiwit: 35, koolhydraten: 0, vetten: 10 },
+      { naam: "Zoete aardappel", portie: "180g", kcal: 162, eiwit: 3, koolhydraten: 37, vetten: 0 },
+      { naam: "Boerenkool", portie: "120g", kcal: 59, eiwit: 5, koolhydraten: 11, vetten: 1 },
+    ],
+  },
 ];
 
 const SNACK_OPTIES: MealTemplate[] = [
@@ -686,8 +782,8 @@ const SNACK_OPTIES: MealTemplate[] = [
   },
 ];
 
-function pick<T>(items: T[], dayIndex: number, salt: number): T {
-  return items[(dayIndex + salt) % items.length];
+function pick<T>(items: T[], dayIndex: number, salt: number, varietySeed = 0): T {
+  return items[(dayIndex + salt + varietySeed) % items.length];
 }
 
 function mealHasPreferredProtein(template: MealTemplate, preferredKeys: string[]): boolean {
@@ -702,12 +798,13 @@ function pickPreferred(
   options: MealTemplate[],
   dayIndex: number,
   salt: number,
-  preferredKeys: string[]
+  preferredKeys: string[],
+  varietySeed = 0
 ): MealTemplate {
-  if (preferredKeys.length === 0) return pick(options, dayIndex, salt);
+  if (preferredKeys.length === 0) return pick(options, dayIndex, salt, varietySeed);
   const matching = options.filter((o) => mealHasPreferredProtein(o, preferredKeys));
-  if (matching.length === 0) return pick(options, dayIndex, salt);
-  return pick(matching, dayIndex, salt);
+  if (matching.length === 0) return pick(options, dayIndex, salt, varietySeed);
+  return pick(matching, dayIndex, salt, varietySeed);
 }
 
 export function buildDefaultMaaltijden(dayIndex = 0): Maaltijd[] {
@@ -1148,13 +1245,14 @@ function buildDayMeals(
   preferredKeys: string[],
   exclusions: string[],
   preferredProteins: string[],
-  mealCount: number
+  mealCount: number,
+  varietySeed = 0
 ): Maaltijd[] {
-  const ontbijt = pick(ONTBIJT_OPTIES, dayIndex, 0);
-  const lunch = pickPreferred(LUNCH_OPTIES, dayIndex, 1, preferredKeys);
-  const diner = pickPreferred(DINER_OPTIES, dayIndex, 2, preferredKeys);
-  const snack1 = pick(SNACK_OPTIES, dayIndex, 3);
-  const snack2 = pick(SNACK_OPTIES, dayIndex, 5);
+  const ontbijt = pick(ONTBIJT_OPTIES, dayIndex, 0, varietySeed);
+  const lunch = pickPreferred(LUNCH_OPTIES, dayIndex, 1 + varietySeed, preferredKeys, varietySeed);
+  const diner = pickPreferred(DINER_OPTIES, dayIndex, 2 + varietySeed, preferredKeys, varietySeed);
+  const snack1 = pick(SNACK_OPTIES, dayIndex, 3, varietySeed);
+  const snack2 = pick(SNACK_OPTIES, dayIndex, 5 + varietySeed, varietySeed);
 
   let meals: Maaltijd[] = [
     withMealTotals({ ...ontbijt, id: `${dayIndex}-1` }),
@@ -1234,9 +1332,17 @@ export function buildWeekmenu(
   const styles = options.styles ?? [];
   const mealCount = Math.min(6, Math.max(3, options.mealCount ?? mealCountArg ?? 5));
   const preferredKeys = resolvePreferredKeys(preferredProteins);
+  const varietySeed = Math.max(0, Math.min(6, options.varietySeed ?? 0));
 
   return DAGEN.map((dagNaam, dayIndex) => {
-    const base = buildDayMeals(dayIndex, preferredKeys, exclusions, preferredProteins, mealCount);
+    const base = buildDayMeals(
+      dayIndex,
+      preferredKeys,
+      exclusions,
+      preferredProteins,
+      mealCount,
+      varietySeed
+    );
     const scaled = scaleMealsToTargets(base, targets, styles);
     return buildDagMenu(dagNaam, scaled, targets);
   });
