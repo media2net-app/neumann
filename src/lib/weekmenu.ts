@@ -858,7 +858,35 @@ function classifyMacroRole(ing: Ingredient): "protein" | "carb" | "fat" | "mixed
   return "mixed";
 }
 
-function scaleIngredient(ing: Ingredient, factor: number): Ingredient {
+/** Parse portie string naar gram-equivalent voor herberekening */
+export function parsePortieGrams(portie: string): number | null {
+  const trimmed = portie.trim();
+  const gramMatch = trimmed.match(/^(\d+(?:[.,]\d+)?)\s*g\b/i);
+  if (gramMatch) return parseFloat(gramMatch[1].replace(",", "."));
+
+  const mlMatch = trimmed.match(/^(\d+(?:[.,]\d+)?)\s*ml\b/i);
+  if (mlMatch) return parseFloat(mlMatch[1].replace(",", "."));
+
+  const stukMatch = trimmed.match(/^(\d+(?:[.,]\d+)?)\s*stuk/i);
+  if (stukMatch) return parseFloat(stukMatch[1].replace(",", ".")) * 50;
+
+  if (/1\/2\s*stuk/i.test(trimmed)) return 50;
+  if (/1\s*middelgroot/i.test(trimmed)) return 120;
+
+  const elMatch = trimmed.match(/^(\d+(?:[.,]\d+)?)\s*el\b/i);
+  if (elMatch) return parseFloat(elMatch[1].replace(",", ".")) * 15;
+
+  const snedenMatch = trimmed.match(/^(\d+)\s*sneden/i);
+  if (snedenMatch) return parseInt(snedenMatch[1], 10) * 35;
+
+  return null;
+}
+
+export function formatPortieGrams(grams: number): string {
+  return `${Math.round(grams)}g`;
+}
+
+export function scaleIngredient(ing: Ingredient, factor: number): Ingredient {
   const f = Math.max(0.15, Math.min(4.5, factor));
   if (Math.abs(f - 1) < 0.02) return ing;
 
@@ -891,6 +919,23 @@ function scaleIngredient(ing: Ingredient, factor: number): Ingredient {
     eiwit: round1(ing.eiwit * f),
     koolhydraten: round1(ing.koolhydraten * f),
     vetten: round1(ing.vetten * f),
+  };
+}
+
+/** Herbereken macros wanneer portie (in gram) wijzigt */
+export function rescaleIngredientPortion(ing: Ingredient, newGrams: number): Ingredient {
+  const oldGrams = parsePortieGrams(ing.portie);
+  if (oldGrams && oldGrams > 0) {
+    return scaleIngredient(ing, newGrams / oldGrams);
+  }
+  const factor = newGrams / 100;
+  return {
+    ...ing,
+    portie: formatPortieGrams(newGrams),
+    kcal: Math.round(ing.kcal * factor),
+    eiwit: round1(ing.eiwit * factor),
+    koolhydraten: round1(ing.koolhydraten * factor),
+    vetten: round1(ing.vetten * factor),
   };
 }
 

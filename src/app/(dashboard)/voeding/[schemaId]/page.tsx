@@ -7,10 +7,15 @@ import Link from "next/link";
 import {
   DAGEN,
   type DagMenu,
+  type Ingredient,
+  type Maaltijd,
   buildWeekmenu,
   buildDagMenu,
   withMealTotals,
   cleanBereidingswijze,
+  parsePortieGrams,
+  formatPortieGrams,
+  rescaleIngredientPortion,
 } from "@/lib/weekmenu";
 
 const AI_VLEES_OPTIES = [
@@ -75,6 +80,8 @@ function SchemaDetailContent({ schemaId }: { schemaId: string }) {
   const [weekmenu, setWeekmenu] = useState<DagMenu[]>([]);
   const [actieveDag, setActieveDag] = useState<string>(DAGEN[0]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [modalMealId, setModalMealId] = useState<string>("");
   const [modalTab, setModalTab] = useState<"maaltijd" | "ingrediënten" | "recepten">("maaltijd");
   const [isAIGeneratorOpen, setIsAIGeneratorOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -244,33 +251,84 @@ function SchemaDetailContent({ schemaId }: { schemaId: string }) {
     };
   }, []);
 
-  const removeIngredient = (dagNaam: string, maaltijdId: string, ingredientIndex: number) => {
+  const getMacroTargets = () =>
+    schema
+      ? {
+          eiwit: schema.eiwit,
+          koolhydraten: schema.koolhydraten,
+          vetten: schema.vetten,
+          doelKcal: schema.calorieën,
+        }
+      : { eiwit: 1, koolhydraten: 1, vetten: 1, doelKcal: 1 };
+
+  const updateWeekmenuDay = (
+    dagNaam: string,
+    updater: (maaltijden: Maaltijd[]) => Maaltijd[]
+  ) => {
     setWeekmenu((prev) => {
+      const targets = getMacroTargets();
       const next = prev.map((dag) => {
         if (dag.dag !== dagNaam) return dag;
-        const targets = schema
-          ? {
-              eiwit: schema.eiwit,
-              koolhydraten: schema.koolhydraten,
-              vetten: schema.vetten,
-              doelKcal: schema.calorieën,
-            }
-          : { eiwit: 1, koolhydraten: 1, vetten: 1, doelKcal: 1 };
-
-        const maaltijden = dag.maaltijden.map((maaltijd) => {
-          if (maaltijd.id !== maaltijdId) return maaltijd;
-          const removed = maaltijd.ingrediënten[ingredientIndex];
-          if (!removed) return maaltijd;
-          const ingrediënten = maaltijd.ingrediënten.filter((_, i) => i !== ingredientIndex);
-          const bereidingswijze = cleanBereidingswijze(maaltijd.bereidingswijze || "", removed.naam);
-          return withMealTotals({ ...maaltijd, ingrediënten, bereidingswijze });
-        });
-
+        const maaltijden = updater(dag.maaltijden);
         return buildDagMenu(dag.dag, maaltijden, targets);
       });
       void saveWeekMenu(next);
       return next;
     });
+  };
+
+  const removeIngredient = (dagNaam: string, maaltijdId: string, ingredientIndex: number) => {
+    updateWeekmenuDay(dagNaam, (maaltijden) =>
+      maaltijden.map((maaltijd) => {
+        if (maaltijd.id !== maaltijdId) return maaltijd;
+        const removed = maaltijd.ingrediënten[ingredientIndex];
+        if (!removed) return maaltijd;
+        const ingrediënten = maaltijd.ingrediënten.filter((_, i) => i !== ingredientIndex);
+        const bereidingswijze = cleanBereidingswijze(maaltijd.bereidingswijze || "", removed.naam);
+        return withMealTotals({ ...maaltijd, ingrediënten, bereidingswijze });
+      })
+    );
+  };
+
+  const updateIngredientPortion = (
+    dagNaam: string,
+    maaltijdId: string,
+    ingredientIndex: number,
+    newGrams: number
+  ) => {
+    if (!Number.isFinite(newGrams) || newGrams <= 0) return;
+    updateWeekmenuDay(dagNaam, (maaltijden) =>
+      maaltijden.map((maaltijd) => {
+        if (maaltijd.id !== maaltijdId) return maaltijd;
+        const ingrediënten = maaltijd.ingrediënten.map((ing, i) =>
+          i === ingredientIndex ? rescaleIngredientPortion(ing, newGrams) : ing
+        );
+        return withMealTotals({ ...maaltijd, ingrediënten });
+      })
+    );
+  };
+
+  const addIngredientToMeal = (dagNaam: string, maaltijdId: string, ingredient: Ingredient) => {
+    updateWeekmenuDay(dagNaam, (maaltijden) =>
+      maaltijden.map((maaltijd) => {
+        if (maaltijd.id !== maaltijdId) return maaltijd;
+        return withMealTotals({
+          ...maaltijd,
+          ingrediënten: [...maaltijd.ingrediënten, ingredient],
+        });
+      })
+    );
+  };
+
+  const addMealToDay = (dagNaam: string, meal: Omit<Maaltijd, "totaleKcal" | "eiwit" | "koolhydraten" | "vetten">) => {
+    updateWeekmenuDay(dagNaam, (maaltijden) => [...maaltijden, withMealTotals(meal)]);
+  };
+
+  const openAddModal = (tab: "maaltijd" | "ingrediënten" = "maaltijd", mealId?: string) => {
+    const dayMeals = weekmenu.find((d) => d.dag === actieveDag)?.maaltijden ?? [];
+    setModalMealId(mealId ?? dayMeals[0]?.id ?? "");
+    setModalTab(tab);
+    setIsModalOpen(true);
   };
 
   // Fallback ingrediënten database (per 100g) - wordt gebruikt tot data geladen is
@@ -497,9 +555,13 @@ function SchemaDetailContent({ schemaId }: { schemaId: string }) {
             <Sparkles size={16} />
             Voedingsplan AI Generator
           </button>
-          <button className="btn btn--secondary">
+          <button
+            type="button"
+            className={`btn ${isEditing ? "btn--primary" : "btn--secondary"}`}
+            onClick={() => setIsEditing((v) => !v)}
+          >
             <Edit size={16} />
-            Bewerken
+            {isEditing ? "Klaar met bewerken" : "Bewerken"}
           </button>
         </div>
       </div>
@@ -631,9 +693,10 @@ function SchemaDetailContent({ schemaId }: { schemaId: string }) {
         <div className="page-card">
           <div className="dashboard-card__header">
             <h2>Weekmenu</h2>
-            <button 
+            <button
+              type="button"
               className="btn btn--secondary"
-              onClick={() => setIsModalOpen(true)}
+              onClick={() => openAddModal("maaltijd")}
             >
               <Plus size={16} />
               Maaltijd Toevoegen
@@ -641,7 +704,12 @@ function SchemaDetailContent({ schemaId }: { schemaId: string }) {
           </div>
 
           {/* Tabs voor dagen */}
-          <div style={{ 
+          {isEditing && (
+            <p style={{ fontSize: "0.85rem", color: "var(--client-brand)", marginBottom: "1rem", fontWeight: 500 }}>
+              Bewerkmodus actief — pas porties aan (gram) en wijzigingen worden automatisch opgeslagen.
+            </p>
+          )}
+          <div style={{
             display: 'flex', 
             gap: '0.5rem', 
             marginBottom: '2rem',
@@ -802,12 +870,23 @@ function SchemaDetailContent({ schemaId }: { schemaId: string }) {
                       <h4 style={{ fontSize: '1rem', margin: 0 }}>{maaltijd.naam}</h4>
                       <span className="dashboard-table__meta">{maaltijd.tijd}</span>
                     </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--client-primary)' }}>
-                        {maaltijd.totaleKcal} <span style={{ fontSize: '0.9rem', fontWeight: 'normal' }}>kcal</span>
-                      </div>
-                      <div className="dashboard-table__meta" style={{ marginTop: '0.25rem', fontSize: '0.85rem' }}>
-                        E: {maaltijd.eiwit}g • K: {maaltijd.koolhydraten}g • V: {maaltijd.vetten}g
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                      <button
+                        type="button"
+                        className="btn btn--secondary"
+                        style={{ padding: "0.35rem 0.65rem", fontSize: "0.85rem" }}
+                        onClick={() => openAddModal("ingrediënten", maaltijd.id)}
+                      >
+                        <Plus size={14} />
+                        Ingrediënt
+                      </button>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--client-primary)' }}>
+                          {maaltijd.totaleKcal} <span style={{ fontSize: '0.9rem', fontWeight: 'normal' }}>kcal</span>
+                        </div>
+                        <div className="dashboard-table__meta" style={{ marginTop: '0.25rem', fontSize: '0.85rem' }}>
+                          E: {maaltijd.eiwit}g • K: {maaltijd.koolhydraten}g • V: {maaltijd.vetten}g
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -830,7 +909,36 @@ function SchemaDetailContent({ schemaId }: { schemaId: string }) {
                         {maaltijd.ingrediënten.map((ingrediënt, idx) => (
                           <tr key={`${maaltijd.id}-${ingrediënt.naam}-${idx}`}>
                             <td><strong>{ingrediënt.naam}</strong></td>
-                            <td>{ingrediënt.portie}</td>
+                            <td>
+                              {isEditing ? (
+                                <input
+                                  key={`${maaltijd.id}-${idx}-${ingrediënt.portie}-${ingrediënt.kcal}`}
+                                  type="number"
+                                  min={1}
+                                  step={1}
+                                  className="page-filter"
+                                  style={{ width: "80px", padding: "0.25rem 0.5rem" }}
+                                  defaultValue={parsePortieGrams(ingrediënt.portie) ?? ""}
+                                  title={ingrediënt.portie}
+                                  onBlur={(e) => {
+                                    const grams = parseFloat(e.target.value);
+                                    if (grams > 0) {
+                                      updateIngredientPortion(
+                                        geselecteerdeDag.dag,
+                                        maaltijd.id,
+                                        idx,
+                                        grams
+                                      );
+                                    }
+                                  }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") e.currentTarget.blur();
+                                  }}
+                                />
+                              ) : (
+                                ingrediënt.portie
+                              )}
+                            </td>
                             <td>{ingrediënt.kcal}</td>
                             <td>{ingrediënt.eiwit}</td>
                             <td>{ingrediënt.koolhydraten}</td>
@@ -936,7 +1044,11 @@ function SchemaDetailContent({ schemaId }: { schemaId: string }) {
                 borderBottom: "2px solid var(--client-border)",
               }}
             >
-              <h2>Maaltijd Toevoegen</h2>
+              <h2>
+                {modalTab === "ingrediënten"
+                  ? `Ingrediënt toevoegen — ${actieveDag}`
+                  : "Maaltijd Toevoegen"}
+              </h2>
               <button
                 onClick={() => setIsModalOpen(false)}
                 style={{
@@ -1105,8 +1217,17 @@ function SchemaDetailContent({ schemaId }: { schemaId: string }) {
                       type="button"
                       className="btn btn--primary"
                       onClick={() => {
-                        // Hier zou je de maaltijd toevoegen aan de geselecteerde dag
-                        alert(`Maaltijd "${nieuweMaaltijd.naam}" toegevoegd voor ${actieveDag} om ${nieuweMaaltijd.tijd}`);
+                        if (!nieuweMaaltijd.naam.trim() || !nieuweMaaltijd.tijd.trim()) {
+                          alert("Vul naam en tijd in");
+                          return;
+                        }
+                        addMealToDay(actieveDag, {
+                          id: `${actieveDag}-${Date.now()}`,
+                          naam: nieuweMaaltijd.naam.trim(),
+                          tijd: nieuweMaaltijd.tijd.trim(),
+                          bereidingswijze: "",
+                          ingrediënten: [],
+                        });
                         setIsModalOpen(false);
                         setNieuweMaaltijd({ naam: "", tijd: "", type: "Ontbijt" });
                       }}
@@ -1127,6 +1248,29 @@ function SchemaDetailContent({ schemaId }: { schemaId: string }) {
               {/* Ingrediënten Tab */}
               {modalTab === "ingrediënten" && (
                 <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+                  {/* Maaltijd kiezen */}
+                  <div>
+                    <label
+                      htmlFor="ingrediëntMaaltijd"
+                      style={{ display: "block", marginBottom: "0.5rem", fontWeight: 500 }}
+                    >
+                      Toevoegen aan maaltijd ({actieveDag})
+                    </label>
+                    <select
+                      id="ingrediëntMaaltijd"
+                      className="page-filter"
+                      style={{ width: "100%" }}
+                      value={modalMealId}
+                      onChange={(e) => setModalMealId(e.target.value)}
+                    >
+                      {(weekmenu.find((d) => d.dag === actieveDag)?.maaltijden ?? []).map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.naam} ({m.tijd})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
                   {/* Zoekbalk voor ingrediënten */}
                   <div>
                     <label
@@ -1137,7 +1281,7 @@ function SchemaDetailContent({ schemaId }: { schemaId: string }) {
                         fontWeight: 500,
                       }}
                     >
-                      Zoek Ingrediënt ({ingrediëntenDatabase.length} beschikbaar)
+                      Zoek Ingrediënt ({activeIngrediëntenDatabase.length} beschikbaar)
                     </label>
                     <div style={{ position: "relative" }}>
                       <Search
@@ -1261,7 +1405,7 @@ function SchemaDetailContent({ schemaId }: { schemaId: string }) {
                             value={nieuwIngrediënt.portie}
                             onChange={(e) => {
                               const portie = parseFloat(e.target.value) || 0;
-                              const geselecteerdIng = ingrediëntenDatabase.find(
+                              const geselecteerdIng = activeIngrediëntenDatabase.find(
                                 (i) => i.naam === nieuwIngrediënt.naam
                               );
                               if (geselecteerdIng) {
@@ -1383,13 +1527,24 @@ function SchemaDetailContent({ schemaId }: { schemaId: string }) {
                           type="button"
                           className="btn btn--primary"
                           onClick={() => {
+                            if (!modalMealId) {
+                              alert("Selecteer een maaltijd");
+                              return;
+                            }
                             if (!nieuwIngrediënt.portie || parseFloat(nieuwIngrediënt.portie) <= 0) {
                               alert("Voer een geldige portiegrootte in");
                               return;
                             }
-                            alert(
-                              `Ingrediënt "${nieuwIngrediënt.naam}" (${nieuwIngrediënt.portie}g) toegevoegd: ${nieuwIngrediënt.kcal} kcal, ${nieuwIngrediënt.eiwit}g eiwit, ${nieuwIngrediënt.koolhydraten}g koolhydraten, ${nieuwIngrediënt.vetten}g vetten`
-                            );
+                            const grams = parseFloat(nieuwIngrediënt.portie);
+                            addIngredientToMeal(actieveDag, modalMealId, {
+                              naam: nieuwIngrediënt.naam,
+                              portie: formatPortieGrams(grams),
+                              kcal: parseInt(nieuwIngrediënt.kcal, 10) || 0,
+                              eiwit: parseFloat(nieuwIngrediënt.eiwit) || 0,
+                              koolhydraten: parseFloat(nieuwIngrediënt.koolhydraten) || 0,
+                              vetten: parseFloat(nieuwIngrediënt.vetten) || 0,
+                            });
+                            setIsModalOpen(false);
                             setNieuwIngrediënt({
                               naam: "",
                               portie: "",
