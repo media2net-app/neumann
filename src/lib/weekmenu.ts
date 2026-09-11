@@ -866,17 +866,20 @@ function scaleMealsToTargets(
     }
   }
 
-  // 9) Warm meals zonder eiwit → inject lean kip, kleiner bij laag kcal-doel
+  // 9) Warm meals zonder eiwit → inject lean protein (tofu if vegetarian, else kip)
+  const vegetarian = styles.some((s) => /vegetarisch|vegan/i.test(s));
+  const injectRef =
+    PROTEIN_REFS.find((r) => r.key === (vegetarian ? "tofu" : "kip")) ??
+    PROTEIN_REFS.find((r) => r.key === "kip")!;
   const injectGrams = targets.doelKcal < 1700 ? 110 : targets.doelKcal < 2000 ? 130 : 150;
   working = working.map((meal) => {
     if (!/lunch|diner/i.test(meal.naam)) return meal;
     const mealProtein = sumIngredients(meal.ingrediënten).eiwit;
     const minProtein = targets.doelKcal < 1700 ? 28 : 35;
     if (mealProtein >= minProtein) return meal;
-    const kip = PROTEIN_REFS.find((r) => r.key === "kip")!;
-    const need = Math.max(minProtein, injectGrams * (kip.eiwit / 100) - mealProtein);
-    const grams = Math.min(injectGrams, Math.round((need / kip.eiwit) * 100));
-    const extra = proteinFromGrams(kip, Math.max(90, grams));
+    const need = Math.max(minProtein, injectGrams * (injectRef.eiwit / 100) - mealProtein);
+    const grams = Math.min(injectGrams, Math.round((need / injectRef.eiwit) * 100));
+    const extra = proteinFromGrams(injectRef, Math.max(90, grams));
     return {
       ...meal,
       ingrediënten: [extra, ...meal.ingrediënten],
@@ -1016,9 +1019,13 @@ function buildDayMeals(
 
       const warmKeys = preferredKeys.filter((k) => PROTEIN_REFS.find((r) => r.key === k)?.warm);
       const mainPool = warmKeys.filter((k) => k !== "eieren");
-      const pool = mainPool.length > 0 ? mainPool : warmKeys.length > 0 ? warmKeys : ["kip"];
+      const vegetarianDay = styles.some((s) => /vegetarisch|vegan/i.test(s));
+      const fallbackKey = vegetarianDay ? "tofu" : "kip";
+      const pool = mainPool.length > 0 ? mainPool : warmKeys.length > 0 ? warmKeys : [fallbackKey];
       const key = pool[dayIndex % pool.length];
-      const ref = PROTEIN_REFS.find((r) => r.key === key) ?? PROTEIN_REFS.find((r) => r.key === "kip")!;
+      const ref =
+        PROTEIN_REFS.find((r) => r.key === key) ??
+        PROTEIN_REFS.find((r) => r.key === fallbackKey)!;
 
       let replaced = false;
       const ings = meal.ingrediënten.map((ing) => {
