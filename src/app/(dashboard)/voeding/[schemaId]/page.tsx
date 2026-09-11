@@ -1024,7 +1024,7 @@ function SchemaDetailContent({ schemaId }: { schemaId: string }) {
 
       {weekmenu.length > 0 && (
         <div className="page-section">
-          <ShoppingListPanel weekMenu={weekmenu} variant="coach" />
+          <ShoppingListPanel weekMenu={weekmenu} variant="coach" storageKey={schemaId} />
         </div>
       )}
 

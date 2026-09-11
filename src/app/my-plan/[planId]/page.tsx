@@ -263,7 +263,11 @@ export default function MyPlanPage() {
 
         {plan.weekMenu?.length > 0 && (
           <div style={{ marginTop: "1.75rem" }}>
-            <ShoppingListPanel weekMenu={plan.weekMenu} variant="client" />
+            <ShoppingListPanel
+              weekMenu={plan.weekMenu}
+              variant="client"
+              storageKey={plan.id}
+            />
           </div>
         )}
 
