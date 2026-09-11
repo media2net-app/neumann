@@ -18,6 +18,7 @@ import {
   rescaleIngredientPortion,
 } from "@/lib/weekmenu";
 import { SCHEMA_PRESETS } from "@/lib/meal-library";
+import { ShoppingListPanel } from "@/components/ShoppingListPanel";
 
 const AI_VLEES_OPTIES = [
   "Kip",
@@ -1020,6 +1021,12 @@ function SchemaDetailContent({ schemaId }: { schemaId: string }) {
           </div>
         </div>
       </div>
+
+      {weekmenu.length > 0 && (
+        <div className="page-section">
+          <ShoppingListPanel weekMenu={weekmenu} variant="coach" />
+        </div>
+      )}
 
       {/* Modal voor Maaltijd Toevoegen */}
       {isModalOpen && (

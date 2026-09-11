@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import { useParams } from "next/navigation";
 import type { DagMenu } from "@/lib/weekmenu";
 import { DAGEN } from "@/lib/weekmenu";
+import { ShoppingListPanel } from "@/components/ShoppingListPanel";
 
 type PlanResponse = {
   id: string;
@@ -258,6 +259,12 @@ export default function MyPlanPage() {
               ))}
             </div>
           </>
+        )}
+
+        {plan.weekMenu?.length > 0 && (
+          <div style={{ marginTop: "1.75rem" }}>
+            <ShoppingListPanel weekMenu={plan.weekMenu} variant="client" />
+          </div>
         )}
 
         <footer style={styles.footer}>

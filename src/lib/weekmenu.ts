@@ -395,7 +395,9 @@ function estimateGrams(ing: Ingredient, ref: ProteinRef | null): number {
 }
 
 function pick<T>(items: T[], dayIndex: number, salt: number, varietySeed = 0): T {
-  return items[(dayIndex + salt + varietySeed) % items.length];
+  // Sterkere rotatie: seed schuift de hele pool, salt/dag kiezen daarbinnen
+  const offset = (varietySeed * 5 + salt * 3 + dayIndex * 2) % items.length;
+  return items[offset];
 }
 
 function pickUnused(
@@ -844,30 +846,37 @@ function scaleMealsToTargets(
     }),
   }));
 
-  // 8) Final protein top-up with magere kwark if still short
+  // 8) Protein top-up alleen als kcal-budget het toelaat
   totals = totalsOf();
-  if (totals.eiwit < targets.eiwit * 0.92) {
+  const kcalRoom = targets.doelKcal - totals.kcal;
+  if (totals.eiwit < targets.eiwit * 0.92 && kcalRoom > 80) {
     const deficit = targets.eiwit - totals.eiwit;
     const kwark = PROTEIN_REFS.find((r) => r.key === "kwark")!;
-    const extraGrams = Math.min(500, Math.max(100, Math.round((deficit / kwark.eiwit) * 100)));
-    const extra = proteinFromGrams(kwark, extraGrams);
-    const snackIdx = working.findIndex((m) => /tussendoortje ochtend|ontbijt/i.test(m.naam));
-    const idx = snackIdx >= 0 ? snackIdx : 0;
-    working[idx] = {
-      ...working[idx],
-      ingrediënten: [...working[idx].ingrediënten, extra],
-      bereidingswijze: `${working[idx].bereidingswijze || ""} Extra ${extra.naam} voor eiwittarget.`.trim(),
-    };
+    const maxByKcal = Math.floor((kcalRoom * 0.7) / Math.max(0.5, kwark.kcal / 100));
+    const extraGrams = Math.min(350, Math.max(80, Math.min(maxByKcal, Math.round((deficit / kwark.eiwit) * 100))));
+    if (extraGrams >= 80) {
+      const extra = proteinFromGrams(kwark, extraGrams);
+      const snackIdx = working.findIndex((m) => /tussendoortje ochtend|ontbijt/i.test(m.naam));
+      const idx = snackIdx >= 0 ? snackIdx : 0;
+      working[idx] = {
+        ...working[idx],
+        ingrediënten: [...working[idx].ingrediënten, extra],
+        bereidingswijze: `${working[idx].bereidingswijze || ""} Extra ${extra.naam} voor eiwittarget.`.trim(),
+      };
+    }
   }
 
-  // 9) Warm meals without enough protein → inject kipfilet
+  // 9) Warm meals zonder eiwit → inject lean kip, kleiner bij laag kcal-doel
+  const injectGrams = targets.doelKcal < 1700 ? 110 : targets.doelKcal < 2000 ? 130 : 150;
   working = working.map((meal) => {
     if (!/lunch|diner/i.test(meal.naam)) return meal;
     const mealProtein = sumIngredients(meal.ingrediënten).eiwit;
-    if (mealProtein >= 35) return meal;
+    const minProtein = targets.doelKcal < 1700 ? 28 : 35;
+    if (mealProtein >= minProtein) return meal;
     const kip = PROTEIN_REFS.find((r) => r.key === "kip")!;
-    const need = Math.max(40, 55 - mealProtein);
-    const extra = proteinFromGrams(kip, Math.round((need / kip.eiwit) * 100));
+    const need = Math.max(minProtein, injectGrams * (kip.eiwit / 100) - mealProtein);
+    const grams = Math.min(injectGrams, Math.round((need / kip.eiwit) * 100));
+    const extra = proteinFromGrams(kip, Math.max(90, grams));
     return {
       ...meal,
       ingrediënten: [extra, ...meal.ingrediënten],
@@ -875,19 +884,49 @@ function scaleMealsToTargets(
     };
   });
 
-  // One more kwark top-up if inject still left us short
+  // 10) Eindpass: schaal hele dag naar kcal-doel (±8%)
   totals = totalsOf();
-  if (totals.eiwit < targets.eiwit * 0.9) {
+  if (totals.kcal > 0) {
+    const ratio = targets.doelKcal / totals.kcal;
+    if (ratio < 0.92 || ratio > 1.08) {
+      const factor = Math.max(0.55, Math.min(1.35, ratio));
+      working = working.map((meal) => ({
+        ...meal,
+        ingrediënten: meal.ingrediënten.map((ing) => scaleIngredient(ing, factor)),
+      }));
+    }
+  }
+
+  // 11) Als nog te hoog: snijd carbs/vetten harder (houd eiwit zo veel mogelijk)
+  totals = totalsOf();
+  if (totals.kcal > targets.doelKcal * 1.1) {
+    const overshoot = totals.kcal / targets.doelKcal;
+    const cut = Math.max(0.45, 1 / overshoot);
+    working = working.map((meal) => ({
+      ...meal,
+      ingrediënten: meal.ingrediënten.map((ing) => {
+        const role = classifyMacroRole(ing);
+        if (role === "carb" || role === "fat") return scaleIngredient(ing, cut);
+        return ing;
+      }),
+    }));
+  }
+
+  // Laatste eiwit-top-up alleen als nog steeds te laag én kcal onder doel
+  totals = totalsOf();
+  if (totals.eiwit < targets.eiwit * 0.88 && totals.kcal < targets.doelKcal * 0.98) {
     const deficit = targets.eiwit - totals.eiwit;
     const kwark = PROTEIN_REFS.find((r) => r.key === "kwark")!;
-    const extra = proteinFromGrams(
-      kwark,
-      Math.min(450, Math.round((deficit / kwark.eiwit) * 100))
-    );
-    working[0] = {
-      ...working[0],
-      ingrediënten: [...working[0].ingrediënten, extra],
-    };
+    const room = targets.doelKcal - totals.kcal;
+    const maxByKcal = Math.floor((room * 0.8) / Math.max(0.5, kwark.kcal / 100));
+    const grams = Math.min(300, Math.max(0, Math.min(maxByKcal, Math.round((deficit / kwark.eiwit) * 100))));
+    if (grams >= 80) {
+      const extra = proteinFromGrams(kwark, grams);
+      working[0] = {
+        ...working[0],
+        ingrediënten: [...working[0].ingrediënten, extra],
+      };
+    }
   }
 
   return working.map((m) => withMealTotals(m));
